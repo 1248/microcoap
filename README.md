@@ -27,6 +27,9 @@ To test, use libcoap
     ./coap-client -v 100 -m get coap://127.0.0.1/.well-known/core
     ./coap-client -v 100 -m get coap://127.0.0.1/hello
 
+Or use copper (Firefox plugin)
+
+    coap://127.0.0.1
 
 Arduino problem
 ===============

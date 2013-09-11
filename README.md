@@ -2,7 +2,9 @@ microcoap
 =========
 
 A miminal CoAP server implementation for microcontrollers.
+
 Written from the RFC, http://tools.ietf.org/html/draft-ietf-core-coap-18
+
 Endpoint handlers are defined in endpoints.c
 
  * Arduino demo

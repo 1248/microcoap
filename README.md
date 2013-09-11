@@ -9,8 +9,8 @@ Endpoint handlers are defined in endpoints.c
 
  * Arduino demo
  * POSIX (OS X/Linux) demo
+ * GET/PUT/POST
  * Probably not compliant
- * Only supports GET
  * No retry logic
 
 For linux/OSX

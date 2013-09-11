@@ -6,7 +6,7 @@
 static const coap_endpoint_path_t path_well_known_core = {2, {".well-known", "core"}};
 static int handle_get_well_known_core(coap_packet_t *outpkt, uint8_t id_hi, uint8_t id_lo)
 {
-    static char *rsp = "</hello>;title=\"Hello\"";
+    static char *rsp = "</hello>;title=\"Hi\"";
     coap_make_get_response(outpkt, (const uint8_t *)rsp, strlen(rsp), id_hi, id_lo);
     return 0;
 }

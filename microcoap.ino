@@ -72,6 +72,7 @@ void loop()
             coap_packet_t rsppkt;
             coap_handle_req(&pkt, &rsppkt);
 
+            memset(packetbuf, 0, UDP_TX_PACKET_MAX_SIZE);
             if (0 != (rc = coap_build(packetbuf, &rsplen, &rsppkt)))
             {
                 Serial.print("coap_build failed rc=");

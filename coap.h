@@ -25,6 +25,12 @@ typedef struct
 
 typedef struct
 {
+    uint8_t *p;
+    size_t len;
+} coap_rw_buffer_t;
+
+typedef struct
+{
     uint8_t num;
     coap_buffer_t buf;
 } coap_option_t;
@@ -86,6 +92,14 @@ typedef enum
     COAP_RSPCODE_NOT_FOUND = MAKE_RSPCODE(4, 4)
 } coap_responsecode_t;
 
+//http://tools.ietf.org/html/draft-ietf-core-coap-18#section-12.3
+typedef enum
+{
+    COAP_CONTENTTYPE_NONE = -1, // bodge to allow us not to send option block
+    COAP_CONTENTTYPE_TEXT_PLAIN = 0,
+    COAP_CONTENTTYPE_APPLICATION_LINKFORMAT = 40,
+} coap_content_type_t;
+
 ///////////////////////
 
 typedef enum
@@ -99,12 +113,13 @@ typedef enum
     COAP_ERR_OPTION_OVERRUNS_PACKET = 6,
     COAP_ERR_OPTION_TOO_BIG = 7,
     COAP_ERR_OPTION_LEN_INVALID = 8,
-    COAP_ERR_BUFFER_TOO_SMALL = 9
+    COAP_ERR_BUFFER_TOO_SMALL = 9,
+    COAP_ERR_UNSUPPORTED = 10
 } coap_error_t;
 
 ///////////////////////
 
-typedef int (*coap_endpoint_func)(const coap_packet_t *inpkt, coap_packet_t *outpkt, uint8_t id_hi, uint8_t id_lo);
+typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt, uint8_t id_hi, uint8_t id_lo);
 
 typedef struct
 {
@@ -127,8 +142,8 @@ int coap_buffer_to_string(char *strbuf, size_t strbuflen, const coap_buffer_t *b
 const coap_option_t *coap_findOptions(const coap_packet_t *pkt, uint8_t num, uint8_t *count);
 int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt);
 void coap_dump(const uint8_t *buf, size_t buflen, bool bare);
-void coap_make_response(coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, coap_responsecode_t rspcode);
-int coap_handle_req(const coap_packet_t *inpkt, coap_packet_t *outpkt);
+int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, coap_responsecode_t rspcode, coap_content_type_t content_type);
+int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt);
 
 #endif
 

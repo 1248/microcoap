@@ -17,6 +17,8 @@ static uint8_t mac[] = {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02};
 EthernetClient client;
 EthernetUDP udp;
 uint8_t packetbuf[UDP_TX_PACKET_MAX_SIZE];
+static uint8_t scratch_raw[16];
+static coap_rw_buffer_t scratch_buf = {scratch_raw, sizeof(scratch_raw)};
 
 void setup()
 {
@@ -70,7 +72,7 @@ void loop()
         {
             size_t rsplen = sizeof(packetbuf);
             coap_packet_t rsppkt;
-            coap_handle_req(&pkt, &rsppkt);
+            coap_handle_req(&scratch_buf, &pkt, &rsppkt);
 
             memset(packetbuf, 0, UDP_TX_PACKET_MAX_SIZE);
             if (0 != (rc = coap_build(packetbuf, &rsplen, &rsppkt)))

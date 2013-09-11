@@ -13,6 +13,8 @@ int main(int argc, char **argv)
     int fd;
     struct sockaddr_in servaddr, cliaddr;
     uint8_t buf[4096];
+    uint8_t scratch_raw[4096];
+    coap_rw_buffer_t scratch_buf = {scratch_raw, sizeof(scratch_raw)};
 
     fd = socket(AF_INET,SOCK_DGRAM,0);
 
@@ -44,7 +46,7 @@ int main(int argc, char **argv)
 #ifdef DEBUG
             coap_dumpPacket(&pkt);
 #endif
-            coap_handle_req(&pkt, &rsppkt);
+            coap_handle_req(&scratch_buf, &pkt, &rsppkt);
 
             if (0 != (rc = coap_build(buf, &rsplen, &rsppkt)))
                 printf("coap_build failed rc=%d\n", rc);
@@ -56,7 +58,7 @@ int main(int argc, char **argv)
                 printf("\n");
 #endif
 #ifdef DEBUG
-                coap_dumpPacket(&pkt);
+                coap_dumpPacket(&rsppkt);
 #endif
 
                 sendto(fd, buf, rsplen, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));

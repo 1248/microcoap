@@ -90,6 +90,7 @@ int coap_parseOption(coap_option_t *option, uint16_t *running_delta, const uint8
     delta = (p[0] & 0xF0) >> 4;
     len = p[0] & 0x0F;
 
+    // These are untested and may be buggy
     if (len == 13)
     {
         if (buflen < 2)
@@ -242,6 +243,10 @@ int coap_buffer_to_string(char *strbuf, size_t strbuflen, const coap_buffer_t *b
 
 int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
 {
+    size_t opts_len = 0;
+    size_t i;
+    uint8_t *p;
+    uint16_t running_delta = 0;
     // build header
     if (*buflen < 4)
         return COAP_ERR_BUFFER_TOO_SMALL;
@@ -255,20 +260,42 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
     buf[2] = pkt->hdr.id[0];
     buf[3] = pkt->hdr.id[1];
 
+    // inject options
+    p = buf + 4;
+    for (i=0;i<pkt->numopts;i++)
+    {
+        uint8_t delta;
+        if (p-buf > *buflen)
+            return COAP_ERR_BUFFER_TOO_SMALL;
+        delta = pkt->opts[i].num - running_delta;
+        if (delta > 12)
+            return COAP_ERR_UNSUPPORTED;    // FIXME
+        if (pkt->opts[i].buf.len > 12)
+            return COAP_ERR_UNSUPPORTED;    // FIXME
+        *p++ = (delta << 4) | (pkt->opts[i].buf.len & 0x0F);
+        if ((p+pkt->opts[i].buf.len) - buf > *buflen)
+            return COAP_ERR_BUFFER_TOO_SMALL;
+        memcpy(p, pkt->opts[i].buf.p, pkt->opts[i].buf.len);
+        p += pkt->opts[i].buf.len;
+        running_delta = delta;
+    }
+
+    opts_len = (p - buf) - 4;   // number of bytes used by options
+
     if (pkt->payload.len > 0)
     {
-        if (*buflen < 4 + 1 + pkt->payload.len)
+        if (*buflen < 4 + 1 + pkt->payload.len + opts_len)
             return COAP_ERR_BUFFER_TOO_SMALL;
-        buf[4] = 0xFF;  // payload marker
-        memcpy(buf+5, pkt->payload.p, pkt->payload.len);
-        *buflen = 5 + pkt->payload.len;
+        buf[4 + opts_len] = 0xFF;  // payload marker
+        memcpy(buf+5 + opts_len, pkt->payload.p, pkt->payload.len);
+        *buflen = opts_len + 5 + pkt->payload.len;
     }
     else
-        *buflen = 4;
+        *buflen = opts_len + 4;
     return 0;
 }
 
-void coap_make_response(coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, coap_responsecode_t rspcode)
+int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, coap_responsecode_t rspcode, coap_content_type_t content_type)
 {
     pkt->hdr.ver = 0x01;
     pkt->hdr.t = COAP_TYPE_ACK;
@@ -276,15 +303,25 @@ void coap_make_response(coap_packet_t *pkt, const uint8_t *content, size_t conte
     pkt->hdr.code = rspcode;
     pkt->hdr.id[0] = msgid_hi;
     pkt->hdr.id[1] = msgid_lo;
-    pkt->numopts = 0;
+    pkt->numopts = 1;
+
+    // safe because 1 < MAXOPT
+    pkt->opts[0].num = COAP_OPTION_CONTENT_FORMAT;
+    pkt->opts[0].buf.p = scratch->p;
+    if (scratch->len < 2)
+        return COAP_ERR_BUFFER_TOO_SMALL;
+    scratch->p[0] = ((uint16_t)content_type & 0xFF00) >> 8;
+    scratch->p[1] = ((uint16_t)content_type & 0x00FF);
+    pkt->opts[0].buf.len = 2;
 
     pkt->payload.p = content;
     pkt->payload.len = content_len;
+    return 0;
 }
 
 // FIXME, if this looked in the table at the path before the method then
 // it could more easily return 405 errors
-int coap_handle_req(const coap_packet_t *inpkt, coap_packet_t *outpkt)
+int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt)
 {
     const coap_option_t *opt;
     uint8_t count;
@@ -307,13 +344,13 @@ int coap_handle_req(const coap_packet_t *inpkt, coap_packet_t *outpkt)
                     goto next;
             }
             // match!
-            return ep->handler(inpkt, outpkt, inpkt->hdr.id[0], inpkt->hdr.id[1]);
+            return ep->handler(scratch, inpkt, outpkt, inpkt->hdr.id[0], inpkt->hdr.id[1]);
         }
 next:
         ep++;
     }
 
-    coap_make_response(outpkt, NULL, 0, inpkt->hdr.id[0], inpkt->hdr.id[1], COAP_RSPCODE_NOT_FOUND);
+    coap_make_response(scratch, outpkt, NULL, 0, inpkt->hdr.id[0], inpkt->hdr.id[1], COAP_RSPCODE_NOT_FOUND, COAP_CONTENTTYPE_NONE);
 
     return 0;
 }

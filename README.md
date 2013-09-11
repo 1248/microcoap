@@ -11,6 +11,7 @@ Endpoint handlers are defined in endpoints.c
  * POSIX (OS X/Linux) demo
  * GET/PUT/POST
  * Probably not compliant
+ * Content Types in responses (ie. /.well-known/core as application/linkformat)
  * No retry logic
 
 For linux/OSX

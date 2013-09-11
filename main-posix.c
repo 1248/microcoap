@@ -29,6 +29,11 @@ int main(int argc, char **argv)
         coap_packet_t pkt;
 
         n = recvfrom(fd, buf, sizeof(buf), 0, (struct sockaddr *)&cliaddr, &len);
+#ifdef DEBUG
+        printf("Received: ");
+        coap_dump(buf, n, true);
+        printf("\n");
+#endif
 
         if (0 != (rc = coap_parse(&pkt, buf, n)))
             printf("Bad packet rc=%d\n", rc);
@@ -36,17 +41,25 @@ int main(int argc, char **argv)
         {
             size_t rsplen = sizeof(buf);
             coap_packet_t rsppkt;
-            //coap_dumpPacket(&pkt);
+#ifdef DEBUG
+            coap_dumpPacket(&pkt);
+#endif
             coap_handle_req(&pkt, &rsppkt);
 
             if (0 != (rc = coap_build(buf, &rsplen, &rsppkt)))
                 printf("coap_build failed rc=%d\n", rc);
             else
             {
+#ifdef DEBUG
+                printf("Sending: ");
+                coap_dump(buf, rsplen, true);
+                printf("\n");
+#endif
+#ifdef DEBUG
+                coap_dumpPacket(&pkt);
+#endif
+
                 sendto(fd, buf, rsplen, 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr));
-                //printf("sent response ");
-                //coap_dump(buf, rsplen, true);
-                //printf("\n");
             }
         }
     }

@@ -104,7 +104,7 @@ typedef enum
 
 ///////////////////////
 
-typedef int (*coap_endpoint_func)(coap_packet_t *outpkt, uint8_t id_hi, uint8_t id_lo);
+typedef int (*coap_endpoint_func)(const coap_packet_t *inpkt, coap_packet_t *outpkt, uint8_t id_hi, uint8_t id_lo);
 
 typedef struct
 {
@@ -127,8 +127,7 @@ int coap_buffer_to_string(char *strbuf, size_t strbuflen, const coap_buffer_t *b
 const coap_option_t *coap_findOptions(const coap_packet_t *pkt, uint8_t num, uint8_t *count);
 int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt);
 void coap_dump(const uint8_t *buf, size_t buflen, bool bare);
-void coap_make_get_response(coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo);
-void coap_make_notfound_response(coap_packet_t *pkt, uint8_t msgid_hi, uint8_t msgid_lo);
+void coap_make_response(coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, coap_responsecode_t rspcode);
 int coap_handle_req(const coap_packet_t *inpkt, coap_packet_t *outpkt);
 
 #endif

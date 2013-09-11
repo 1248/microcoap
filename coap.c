@@ -268,12 +268,12 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
     return 0;
 }
 
-void coap_make_get_response(coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo)
+void coap_make_response(coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, coap_responsecode_t rspcode)
 {
     pkt->hdr.ver = 0x01;
     pkt->hdr.t = COAP_TYPE_ACK;
     pkt->hdr.tkl = 0;
-    pkt->hdr.code = COAP_RSPCODE_CONTENT;
+    pkt->hdr.code = rspcode;
     pkt->hdr.id[0] = msgid_hi;
     pkt->hdr.id[1] = msgid_lo;
     pkt->numopts = 0;
@@ -282,19 +282,8 @@ void coap_make_get_response(coap_packet_t *pkt, const uint8_t *content, size_t c
     pkt->payload.len = content_len;
 }
 
-void coap_make_notfound_response(coap_packet_t *pkt, uint8_t msgid_hi, uint8_t msgid_lo)
-{
-    pkt->hdr.ver = 0x01;
-    pkt->hdr.t = COAP_TYPE_ACK;
-    pkt->hdr.tkl = 0;
-    pkt->hdr.code = COAP_RSPCODE_NOT_FOUND;
-    pkt->hdr.id[0] = msgid_hi;
-    pkt->hdr.id[1] = msgid_lo;
-    pkt->numopts = 0;
-
-    pkt->payload.len = 0;
-}
-
+// FIXME, if this looked in the table at the path before the method then
+// it could more easily return 405 errors
 int coap_handle_req(const coap_packet_t *inpkt, coap_packet_t *outpkt)
 {
     const coap_option_t *opt;
@@ -318,13 +307,13 @@ int coap_handle_req(const coap_packet_t *inpkt, coap_packet_t *outpkt)
                     goto next;
             }
             // match!
-            return ep->handler(outpkt, inpkt->hdr.id[0], inpkt->hdr.id[1]);
+            return ep->handler(inpkt, outpkt, inpkt->hdr.id[0], inpkt->hdr.id[1]);
         }
 next:
         ep++;
     }
 
-    coap_make_notfound_response(outpkt, inpkt->hdr.id[0], inpkt->hdr.id[1]);
+    coap_make_response(outpkt, NULL, 0, inpkt->hdr.id[0], inpkt->hdr.id[1], COAP_RSPCODE_NOT_FOUND);
 
     return 0;
 }

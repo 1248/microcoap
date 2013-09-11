@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stddef.h>
 #include "coap.h"
 
 extern const coap_endpoint_t endpoints[];

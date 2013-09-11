@@ -7,6 +7,7 @@
 
 extern const coap_endpoint_t endpoints[];
 
+#ifdef DEBUG
 void coap_dumpHeader(coap_header_t *hdr)
 {
     printf("Header:\n");
@@ -16,7 +17,9 @@ void coap_dumpHeader(coap_header_t *hdr)
     printf("  code 0x%02X\n", hdr->code);
     printf("  id   0x%02X%02X\n", hdr->id[0], hdr->id[1]);
 }
+#endif
 
+#ifdef DEBUG
 void coap_dump(const uint8_t *buf, size_t buflen, bool bare)
 {
     if (bare)
@@ -32,6 +35,7 @@ void coap_dump(const uint8_t *buf, size_t buflen, bool bare)
         printf("\n");
     }
 }
+#endif
 
 int coap_parseHeader(coap_header_t *hdr, const uint8_t *buf, size_t buflen)
 {
@@ -159,6 +163,7 @@ int coap_parseOptionsAndPayload(coap_option_t *options, uint8_t *numOptions, coa
     return 0;
 }
 
+#ifdef DEBUG
 void coap_dumpOptions(coap_option_t *opts, size_t numopt)
 {
     size_t i;
@@ -170,7 +175,9 @@ void coap_dumpOptions(coap_option_t *opts, size_t numopt)
         printf(" ]\n");
     }
 }
+#endif
 
+#ifdef DEBUG
 void coap_dumpPacket(coap_packet_t *pkt)
 {
     coap_dumpHeader(&pkt->hdr);
@@ -179,6 +186,7 @@ void coap_dumpPacket(coap_packet_t *pkt)
     coap_dump(pkt->payload.p, pkt->payload.len, true);
     printf("\n");
 }
+#endif
 
 int coap_parse(coap_packet_t *pkt, const uint8_t *buf, size_t buflen)
 {

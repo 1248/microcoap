@@ -6,7 +6,7 @@ See http://tools.ietf.org/html/draft-ietf-core-coap-18
 
 Endpoint handlers are defined in endpoints.c
 
- * Arduino demo
+ * Arduino demo (Uno + Ethernet shield, LED + 220R on pin 6, PUT "0" or "1" to /light)
  * POSIX (OS X/Linux) demo
  * GET/PUT/POST
 

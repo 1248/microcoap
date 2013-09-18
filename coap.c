@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include "coap.h"
 
+extern void endpoint_setup(void);
 extern const coap_endpoint_t endpoints[];
 
 #ifdef DEBUG
@@ -355,5 +356,7 @@ next:
     return 0;
 }
 
-
+void coap_setup(void)
+{
+}
 

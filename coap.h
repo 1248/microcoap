@@ -1,6 +1,10 @@
 #ifndef COAP_H
 #define COAP_H 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -89,7 +93,9 @@ typedef enum
 typedef enum
 {
     COAP_RSPCODE_CONTENT = MAKE_RSPCODE(2, 5),
-    COAP_RSPCODE_NOT_FOUND = MAKE_RSPCODE(4, 4)
+    COAP_RSPCODE_NOT_FOUND = MAKE_RSPCODE(4, 4),
+    COAP_RSPCODE_BAD_REQUEST = MAKE_RSPCODE(4, 0),
+    COAP_RSPCODE_CHANGED = MAKE_RSPCODE(2, 4)
 } coap_responsecode_t;
 
 //http://tools.ietf.org/html/draft-ietf-core-coap-18#section-12.3
@@ -120,11 +126,11 @@ typedef enum
 ///////////////////////
 
 typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt, uint8_t id_hi, uint8_t id_lo);
-
+#define MAX_SEGMENTS 2  // 2 = /foo/bar, 3 = /foo/bar/baz
 typedef struct
 {
     int count;
-    const char *elems[];
+    const char *elems[MAX_SEGMENTS];
 } coap_endpoint_path_t;
 
 typedef struct
@@ -144,6 +150,11 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt);
 void coap_dump(const uint8_t *buf, size_t buflen, bool bare);
 int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, coap_responsecode_t rspcode, coap_content_type_t content_type);
 int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt);
+void coap_setup(void);
+void endpoint_setup(void);
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif

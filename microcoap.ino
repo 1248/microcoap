@@ -9,8 +9,6 @@
 #include <EthernetUdp.h>
 #include "coap.h"
 
-#include "coap.c"
-
 #define PORT 5683
 static uint8_t mac[] = {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02};
 
@@ -43,6 +41,9 @@ void setup()
     }
     Serial.println();
     udp.begin(PORT);
+
+    coap_setup();
+    endpoint_setup();
 }
 
 void udp_send(const uint8_t *buf, int buflen)
@@ -82,7 +83,7 @@ void loop()
             }
             else
             {
-                udp_send(packetbuf, sizeof(packetbuf));
+                udp_send(packetbuf, rsplen);
             }
         }
     }

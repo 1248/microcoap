@@ -1,18 +1,18 @@
 microcoap
 =========
 
-A miminal CoAP server implementation for microcontrollers.
-
-Written from the RFC, http://tools.ietf.org/html/draft-ietf-core-coap-18
+A toy CoAP server for microcontrollers.
+See http://tools.ietf.org/html/draft-ietf-core-coap-18
 
 Endpoint handlers are defined in endpoints.c
 
  * Arduino demo
  * POSIX (OS X/Linux) demo
  * GET/PUT/POST
- * Probably not compliant
- * Content Types in responses (ie. /.well-known/core as application/linkformat)
- * No retry logic
+
+ * No retries
+ * Piggybacked ACK only
+
 
 For linux/OSX
 

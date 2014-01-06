@@ -139,6 +139,7 @@ typedef struct
     coap_method_t method;
     coap_endpoint_func handler;
     const coap_endpoint_path_t *path;
+    const char *core_attr;
 } coap_endpoint_t;
 
 

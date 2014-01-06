@@ -24,6 +24,8 @@ int main(int argc, char **argv)
     servaddr.sin_port = htons(PORT);
     bind(fd,(struct sockaddr *)&servaddr, sizeof(servaddr));
 
+    endpoint_setup();
+
     while(1)
     {
         int n, rc;

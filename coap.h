@@ -120,7 +120,8 @@ typedef enum
     COAP_ERR_OPTION_TOO_BIG = 7,
     COAP_ERR_OPTION_LEN_INVALID = 8,
     COAP_ERR_BUFFER_TOO_SMALL = 9,
-    COAP_ERR_UNSUPPORTED = 10
+    COAP_ERR_UNSUPPORTED = 10,
+    COAP_ERR_OPTION_DELTA_INVALID = 11,
 } coap_error_t;
 
 ///////////////////////
@@ -138,6 +139,7 @@ typedef struct
     coap_method_t method;
     coap_endpoint_func handler;
     const coap_endpoint_path_t *path;
+    const char *core_attr;
 } coap_endpoint_t;
 
 

@@ -9,15 +9,13 @@
 #include <EthernetUdp.h>
 #include "coap.h"
 
-#include "coap.c"
-
 #define PORT 5683
 static uint8_t mac[] = {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02};
 
 EthernetClient client;
 EthernetUDP udp;
-uint8_t packetbuf[UDP_TX_PACKET_MAX_SIZE];
-static uint8_t scratch_raw[16];
+uint8_t packetbuf[256];
+static uint8_t scratch_raw[32];
 static coap_rw_buffer_t scratch_buf = {scratch_raw, sizeof(scratch_raw)};
 
 void setup()
@@ -43,6 +41,9 @@ void setup()
     }
     Serial.println();
     udp.begin(PORT);
+
+    coap_setup();
+    endpoint_setup();
 }
 
 void udp_send(const uint8_t *buf, int buflen)
@@ -58,10 +59,18 @@ void loop()
     int sz;
     int rc;
     coap_packet_t pkt;
+    int i;
     
     if ((sz = udp.parsePacket()) > 0)
     {
         udp.read(packetbuf, sizeof(packetbuf));
+
+        for (i=0;i<sz;i++)
+        {
+            Serial.print(packetbuf[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println("");
 
         if (0 != (rc = coap_parse(&pkt, packetbuf, sz)))
         {
@@ -82,10 +91,9 @@ void loop()
             }
             else
             {
-                udp_send(packetbuf, sizeof(packetbuf));
+                udp_send(packetbuf, rsplen);
             }
         }
     }
 }
-
 

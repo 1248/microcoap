@@ -1,18 +1,17 @@
 microcoap
 =========
 
-A miminal CoAP server implementation for microcontrollers.
-
-Written from the RFC, http://tools.ietf.org/html/draft-ietf-core-coap-18
+A tiny CoAP server for microcontrollers.
+See http://tools.ietf.org/html/draft-ietf-core-coap-18
 
 Endpoint handlers are defined in endpoints.c
 
- * Arduino demo
+ * Arduino demo (Mega + Ethernet shield, LED + 220R on pin 6, PUT "0" or "1" to /light)
  * POSIX (OS X/Linux) demo
  * GET/PUT/POST
- * Probably not compliant
- * Content Types in responses (ie. /.well-known/core as application/linkformat)
- * No retry logic
+ * No retries
+ * Piggybacked ACK only
+
 
 For linux/OSX
 
@@ -26,7 +25,9 @@ For Arduino
 To test, use libcoap
 
     ./coap-client -v 100 -m get coap://127.0.0.1/.well-known/core
-    ./coap-client -v 100 -m get coap://127.0.0.1/hello
+    ./coap-client -v 100 -m get coap://127.0.0.1/light
+    ./coap-client -e "1" -m put coap://127.0.0.1/light
+    ./coap-client -e "0" -m put coap://127.0.0.1/light
 
 Or use copper (Firefox plugin)
 

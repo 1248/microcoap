@@ -368,7 +368,7 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
     pkt->hdr.code = rspcode;
     pkt->hdr.id[0] = msgid_hi;
     pkt->hdr.id[1] = msgid_lo;
-    pkt->numopts = 0;
+    pkt->numopts = 1;
 
     // need token in response
     if (tok) {

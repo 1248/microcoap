@@ -6,8 +6,8 @@
 #include <stddef.h>
 #include "coap.h"
 
-extern void endpoint_setup(void);
-extern const coap_endpoint_t endpoints[];
+//extern void endpoint_setup(void);
+//extern const coap_endpoint_t endpoints[];
 
 #ifdef DEBUG
 void coap_dumpHeader(coap_header_t *hdr)
@@ -360,6 +360,18 @@ void coap_option_nibble(uint8_t value, uint8_t *nibble)
     }
 }
 
+int coap_add_option(coap_packet_t *pkt, uint8_t num, const uint8_t *p, size_t len)
+{
+  if (pkt->numopts == MAXOPT) {
+    return 1;
+  }
+  coap_option_t *opt = &pkt->opts[pkt->numopts++];
+  opt->num = num;
+  opt->buf.p = p;
+  opt->buf.len = len;
+  return 0;
+}
+
 int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, const coap_buffer_t* tok, coap_responsecode_t rspcode, coap_content_type_t content_type)
 {
     pkt->hdr.ver = 0x01;
@@ -389,14 +401,26 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
     return 0;
 }
 
+int coap_make_request(coap_packet_t *pkt)
+{
+  pkt->hdr.ver = 0x01;
+  pkt->hdr.t = COAP_TYPE_CON;
+  pkt->hdr.tkl = 0;
+  pkt->hdr.code = 2;
+  pkt->hdr.id[0] = 0;
+  pkt->hdr.id[1] = 0;
+  pkt->numopts = 0;
+  pkt->payload.len = 0;
+  return 0;
+}
+
 // FIXME, if this looked in the table at the path before the method then
 // it could more easily return 405 errors
-int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt)
+int coap_handle_req(const coap_endpoint_t *ep, coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt)
 {
     const coap_option_t *opt;
     uint8_t count;
     int i;
-    const coap_endpoint_t *ep = endpoints;
 
     while(NULL != ep->handler)
     {

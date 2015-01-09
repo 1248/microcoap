@@ -105,6 +105,7 @@ typedef enum
     COAP_CONTENTTYPE_NONE = -1, // bodge to allow us not to send option block
     COAP_CONTENTTYPE_TEXT_PLAIN = 0,
     COAP_CONTENTTYPE_APPLICATION_LINKFORMAT = 40,
+    COAP_CONTENTTYPE_OCTET_STREAM = 42
 } coap_content_type_t;
 
 ///////////////////////
@@ -152,10 +153,14 @@ const coap_option_t *coap_findOptions(const coap_packet_t *pkt, uint8_t num, uin
 int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt);
 void coap_dump(const uint8_t *buf, size_t buflen, bool bare);
 int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, const coap_buffer_t* tok, coap_responsecode_t rspcode, coap_content_type_t content_type);
-int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt);
+int coap_handle_req(const coap_endpoint_t *ep, coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt);
 void coap_option_nibble(uint8_t value, uint8_t *nibble);
 void coap_setup(void);
-void endpoint_setup(void);
+
+//void endpoint_setup(void);
+
+int coap_make_request(coap_packet_t *pkt);
+int coap_add_option(coap_packet_t *pkt, uint8_t num, const uint8_t *p, size_t len);
 
 #ifdef __cplusplus
 }

@@ -294,13 +294,14 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
 
     for (i=0;i<pkt->numopts;i++)
     {
-        uint8_t optDelta, len, delta = 0;
+        uint32_t optDelta;
+        uint8_t len, delta = 0;
 
         if (p-buf > *buflen)
              return COAP_ERR_BUFFER_TOO_SMALL;
         optDelta = pkt->opts[i].num - running_delta;
         coap_option_nibble(optDelta, &delta);
-        coap_option_nibble(pkt->opts[i].buf.len, &len);
+        coap_option_nibble((uint32_t)pkt->opts[i].buf.len, &len);
 
         *p++ = (0xFF & (delta << 4 | len));
         if (delta == 13)
@@ -344,7 +345,7 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
     return 0;
 }
 
-void coap_option_nibble(uint8_t value, uint8_t *nibble)
+void coap_option_nibble(uint32_t value, uint8_t *nibble)
 {
     if (value<13)
     {

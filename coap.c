@@ -65,7 +65,7 @@ int coap_parseToken(coap_buffer_t *tokbuf, const coap_header_t *hdr, const uint8
     else
     if (hdr->tkl <= 8)
     {
-        if (4 + hdr->tkl > buflen)
+        if (4U + hdr->tkl > buflen)
             return COAP_ERR_TOKEN_TOO_SHORT;   // tok bigger than packet
         tokbuf->p = buf+4;  // past header
         tokbuf->len = hdr->tkl;
@@ -270,7 +270,7 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
     uint16_t running_delta = 0;
 
     // build header
-    if (*buflen < 4 + pkt->hdr.tkl)
+    if (*buflen < (4U + pkt->hdr.tkl))
         return COAP_ERR_BUFFER_TOO_SMALL;
 
     buf[0] = (pkt->hdr.ver & 0x03) << 6;
@@ -297,7 +297,7 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
         uint32_t optDelta;
         uint8_t len, delta = 0;
 
-        if (p-buf > *buflen)
+        if (((size_t)(p-buf)) > *buflen)
              return COAP_ERR_BUFFER_TOO_SMALL;
         optDelta = pkt->opts[i].num - running_delta;
         coap_option_nibble(optDelta, &delta);

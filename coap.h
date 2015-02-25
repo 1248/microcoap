@@ -11,7 +11,7 @@ extern "C" {
 
 #define MAXOPT 16
 
-// http://tools.ietf.org/html/draft-ietf-core-coap-18#section-3
+//http://tools.ietf.org/html/rfc7252#section-3
 typedef struct
 {
     uint8_t ver;
@@ -50,7 +50,7 @@ typedef struct
 
 /////////////////////////////////////////
 
-//http://tools.ietf.org/html/draft-ietf-core-coap-18#section-12.2
+//http://tools.ietf.org/html/rfc7252#section-12.2
 typedef enum
 {
     COAP_OPTION_IF_MATCH = 1,
@@ -70,7 +70,7 @@ typedef enum
     COAP_OPTION_PROXY_SCHEME = 39
 } coap_option_num_t;
 
-//http://tools.ietf.org/html/draft-ietf-core-coap-18#section-12.1.1
+//http://tools.ietf.org/html/rfc7252#section-12.1.1
 typedef enum
 {
     COAP_METHOD_GET = 1,
@@ -79,7 +79,7 @@ typedef enum
     COAP_METHOD_DELETE = 4
 } coap_method_t;
 
-//http://tools.ietf.org/html/draft-ietf-core-coap-18#section-12.1.1
+//http://tools.ietf.org/html/rfc7252#section-12.1.1
 typedef enum
 {
     COAP_TYPE_CON = 0,
@@ -88,8 +88,8 @@ typedef enum
     COAP_TYPE_RESET = 3
 } coap_msgtype_t;
 
-//http://tools.ietf.org/html/draft-ietf-core-coap-18#section-5.2
-//http://tools.ietf.org/html/draft-ietf-core-coap-18#section-12.1.2
+//http://tools.ietf.org/html/rfc7252#section-5.2
+//http://tools.ietf.org/html/rfc7252#section-12.1.2
 #define MAKE_RSPCODE(clas, det) ((clas << 5) | (det))
 typedef enum
 {
@@ -99,7 +99,7 @@ typedef enum
     COAP_RSPCODE_CHANGED = MAKE_RSPCODE(2, 4)
 } coap_responsecode_t;
 
-//http://tools.ietf.org/html/draft-ietf-core-coap-18#section-12.3
+//http://tools.ietf.org/html/rfc7252#section-12.3
 typedef enum
 {
     COAP_CONTENTTYPE_NONE = -1, // bodge to allow us not to send option block

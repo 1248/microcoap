@@ -150,7 +150,7 @@ int coap_parseOption(coap_option_t *option, uint16_t *running_delta, const uint8
     return 0;
 }
 
-// http://tools.ietf.org/html/draft-ietf-core-coap-18#section-3.1
+// http://tools.ietf.org/html/rfc7252#section-3.1
 int coap_parseOptionsAndPayload(coap_option_t *options, uint8_t *numOptions, coap_buffer_t *payload, const coap_header_t *hdr, const uint8_t *buf, size_t buflen)
 {
     size_t optionIndex = 0;
@@ -288,7 +288,7 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
     if (pkt->hdr.tkl > 0)
         memcpy(p, pkt->tok.p, pkt->hdr.tkl);
 
-    // http://tools.ietf.org/html/draft-ietf-core-coap-18#section-3.1
+    // // http://tools.ietf.org/html/rfc7252#section-3.1
     // inject options
     p += pkt->hdr.tkl;
 

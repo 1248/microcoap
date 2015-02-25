@@ -2,7 +2,7 @@ microcoap
 =========
 
 A tiny CoAP server for microcontrollers.
-See http://tools.ietf.org/html/draft-ietf-core-coap-18
+See http://tools.ietf.org/html/rfc7252
 
 Endpoint handlers are defined in endpoints.c
 

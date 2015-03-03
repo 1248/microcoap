@@ -25,8 +25,8 @@ typedef struct
 
 typedef struct
 {
-    uint8_t num;                /* Option number. See http://tools.ietf.org/html/rfc7252#section-5.10 */
-    coap_buffer_t buf;          /* Option value */
+    const uint8_t *p;
+    size_t len;
 } coap_buffer_t;
 
 typedef struct
@@ -37,8 +37,8 @@ typedef struct
 
 typedef struct
 {
-    uint8_t num;
-    coap_buffer_t buf;
+    uint8_t num;                /* Option number. See http://tools.ietf.org/html/rfc7252#section-5.10 */
+    coap_buffer_t buf;          /* Option value */
 } coap_option_t;
 
 typedef struct

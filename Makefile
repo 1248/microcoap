@@ -1,4 +1,5 @@
 CFLAGS += -Wall -DDEBUG
+# -DIPV6
 SRC = $(wildcard *.c)
 OBJ = $(SRC:%.c=%.o)
 DEPS = $(SRC:%.c=%.d)

@@ -14,7 +14,7 @@ void coap_dumpHeader(coap_header_t *hdr)
 {
     printf("Header:\n");
     printf("  ver  0x%02X\n", hdr->ver);
-    printf("  t    0x%02X\n", hdr->ver);
+    printf("  t    0x%02X\n", hdr->t);
     printf("  tkl  0x%02X\n", hdr->tkl);
     printf("  code 0x%02X\n", hdr->code);
     printf("  id   0x%02X%02X\n", hdr->id[0], hdr->id[1]);

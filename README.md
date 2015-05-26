@@ -23,6 +23,8 @@ For Arduino
     copy libraries and microcoap-example directories to the Arduino IDE sketches folder
     open: File -> sketches folder -> microcoap-example
 
+Arduino LED pin defined at `microcoap-example\connections.h` and set to 13 (default embedded led for some Arduino boards)
+
 To test, use libcoap
 
     ./coap-client -v 100 -m get coap://127.0.0.1/.well-known/core
@@ -33,6 +35,12 @@ To test, use libcoap
 Or use copper (Firefox plugin)
 
     coap://127.0.0.1
+    
+How to add new coap links
+======================
+
+Use `microcoap-example` dir and edit it or prepare similar folder.
+Edit `endpoints.h` and `endpoints.c` similar to light entry.
 
 Arduino problem
 ===============

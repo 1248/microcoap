@@ -16,7 +16,7 @@ Endpoint handlers are defined in endpoints.c
 For linux/OSX
 
     make
-    ./micocoap
+    ./microcoap
 
 For Arduino
 

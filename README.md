@@ -20,10 +20,10 @@ For linux/OSX
 
 For Arduino
 
-    copy libraries and microcoap-example directories to the Arduino IDE sketches folder
+    copy libraries and microcoap-example directories to the Arduino IDE sketches folder (or just change the sketches folder to the microcoap dir)
     open: File -> sketches folder -> microcoap-example
 
-Arduino LED pin defined at `microcoap-example\connections.h` and set to 13 (default embedded led for some Arduino boards)
+Arduino LED pin defined at `microcoap-example\connections.h` and set to `13` (default embedded led for some Arduino boards)
 
 To test, use libcoap
 

@@ -33,3 +33,6 @@ coap
 *.i*86
 *.x86_64
 *.hex
+
+# OS system files
+.directory

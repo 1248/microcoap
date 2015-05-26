@@ -16,11 +16,12 @@ Endpoint handlers are defined in endpoints.c
 For linux/OSX
 
     make
-    ./coap
+    ./micocoap
 
 For Arduino
 
-    open microcoap.ino
+    copy libraries and microcoap-example directories to the Arduino IDE sketches folder
+    open: File -> sketches folder -> microcoap-example
 
 To test, use libcoap
 

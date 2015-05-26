@@ -1,5 +1,5 @@
 # Executable
-coap
+microcoap
 
 # Object files
 *.o

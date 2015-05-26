@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <strings.h>
 
-#include "coap.h"
+#include "microcoap.h"
 
 #define PORT 5683
 

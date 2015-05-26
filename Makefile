@@ -10,8 +10,6 @@ CFLAGS  = -Wall -DDEBUG
 INC_DIR = libraries/microcoap \
           microcoap-example
 # -DIPV6
-# linking options
-# LDFLAGS = -shared -Wl,-soname,$(APPNAME)
 
 # how to compile individual object files
 OBJS    = $(SRC:.c=.o)
@@ -20,11 +18,10 @@ OBJS    = $(SRC:.c=.o)
 
 .PHONY: all clean
 
-# library compilation
+# app compilation
 $(APPNAME): $(OBJS) $(SRC)
 	$(CC) $(OBJS) -o $(APPNAME)
-#$(LDFLAGS)
-    
+
 # cleaning rule
 clean:
 	rm -f $(OBJS) $(APPNAME) *~

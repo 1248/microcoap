@@ -403,12 +403,13 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
 
 int coap_make_request(coap_packet_t *pkt)
 {
+  int mid = rand();
   pkt->hdr.ver = 0x01;
   pkt->hdr.t = COAP_TYPE_CON;
   pkt->hdr.tkl = 0;
   pkt->hdr.code = 2;
-  pkt->hdr.id[0] = 0;
-  pkt->hdr.id[1] = 0;
+  pkt->hdr.id[0] = mid & 0xFF;
+  pkt->hdr.id[1] = mid >> 8;
   pkt->numopts = 0;
   pkt->payload.len = 0;
   return 0;
@@ -451,5 +452,5 @@ next:
 
 void coap_setup(void)
 {
+  srand(analogRead(0));
 }
-

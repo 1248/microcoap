@@ -18,7 +18,8 @@
 
 static uint8_t mac[] = {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02};
 
-IPAddress ip(185, 38, 249, 75); // com1.telemetria-online.pl
+// IPAddress ip(185, 38, 249, 75); // com1.telemetria-online.pl
+IPAddress ip(178, 62, 114, 226); // com1.smart-connected.us
 
 EthernetClient client;
 EthernetUDP udp;
@@ -238,10 +239,10 @@ void loop()
       coap_handle_req(endpoints, &scratch_buf, &pkt, &rsppkt);
 
       if (0 != (rc = coap_build(packetbuf, &rsplen, &rsppkt))) {
-	Serial.print(F("coap_build failed rc="));
-	Serial.println(rc, DEC);
+        Serial.print(F("coap_build failed rc="));
+        Serial.println(rc, DEC);
       } else {
-	udp_send(udp.remoteIP(), udp.remotePort(), packetbuf, rsplen);
+        udp_send(udp.remoteIP(), udp.remotePort(), packetbuf, rsplen);
       }
     }
   }

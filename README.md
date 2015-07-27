@@ -1,41 +1,21 @@
-microcoap
-=========
+# Connecting sensors to the cloud
 
-A tiny CoAP server for microcontrollers.
-See http://tools.ietf.org/html/draft-ietf-core-coap-18
+I've connected a [temperature & humidity sensor][dht], a photoresistor and a LED to an&nbsp;[Ethernet shield][eth] plugged onto my Arduino Uno.
 
-Endpoint handlers are defined in endpoints.c
+![Schematic](https://github.com/mbialon/microcoap/blob/master/doc/schematic.png)
 
- * Arduino demo (Mega + Ethernet shield, LED + 220R on pin 6, PUT "0" or "1" to /light)
- * POSIX (OS X/Linux) demo
- * GET/PUT/POST
- * No retries
- * Piggybacked ACK only
+I've used a [CoAP][coap] [library][microcoap] and I've created an [Arduino][arduino] [sketch][sketch].
+It connects to the internet and sends sensor readings to the [cloud][teo].
 
+I may view them in the application or on a dashboard.
 
-For linux/OSX
+![Dashboard](https://github.com/mbialon/microcoap/blob/master/doc/dashboard.png)
 
-    make
-    ./coap
-
-For Arduino
-
-    open microcoap.ino
-
-To test, use libcoap
-
-    ./coap-client -v 100 -m get coap://127.0.0.1/.well-known/core
-    ./coap-client -v 100 -m get coap://127.0.0.1/light
-    ./coap-client -e "1" -m put coap://127.0.0.1/light
-    ./coap-client -e "0" -m put coap://127.0.0.1/light
-
-Or use copper (Firefox plugin)
-
-    coap://127.0.0.1
-
-Arduino problem
-===============
-
-Arduino, by default, has a UDP transmit buffer of 24 bytes. This is too small
-for some endpoints and will result in an error.
-
+[coap]: http://coap.technology
+[arduino]: http://arduino.cc
+[teo]: https://telemetria-online.pl/en/#app
+[eth]: http://www.dx.com/p/ethernet-shield-with-wiznet-w5100-ethernet-chip-tf-slot-118061#.VYU-tWBVuHo
+[dht]: http://www.dx.com/p/keyes-dht22-fr4-temperature-humidity-sensor-module-for-arduino-red-white-300285#.VYVPbmBVuHo
+[microcoap]: https://github.com/1248/microcoap
+[sketch]: https://github.com/mbialon/microcoap/blob/master/microcoap.ino
+[repo]: https://github.com/mbialon/microcoap

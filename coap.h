@@ -20,7 +20,8 @@ typedef struct
     uint8_t code;               /* CoAP status code. Can be request (0.xx), success reponse (2.xx), 
                                  * client error response (4.xx), or rever error response (5.xx) 
                                  * For possible values, see http://tools.ietf.org/html/rfc7252#section-12.1 */
-    uint8_t id[2];
+    uint16_t id;
+    //uint8_t id[2];
 } coap_header_t;
 
 typedef struct
@@ -177,7 +178,7 @@ int coap_parse(coap_packet_t *pkt, const uint8_t *buf, size_t buflen);
 
 int coap_buffer_to_string(char *strbuf, size_t strbuflen, const coap_buffer_t *buf);
 
-const coap_option_t *coap_findOptions(const coap_packet_t *pkt, uint8_t num, uint8_t *count);
+const coap_option_t *coap_findOptions(const coap_packet_t *pkt, coap_option_num_t num, uint8_t *count);
 
 int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt);
 

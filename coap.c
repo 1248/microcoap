@@ -39,20 +39,32 @@ void coap_dump(const uint8_t *buf, size_t buflen, bool bare)
 }
 #endif
 
+typedef union {
+    uint8_t raw;
+    struct {
+        uint8_t tkl     : 4;
+        uint8_t t       : 2;
+        uint8_t ver     : 2;
+        uint8_t code;
+        uint16_t id;
+    } hdr;
+} coap_raw_header_t;
+
 int coap_parseHeader(coap_header_t *hdr, const uint8_t *buf, size_t buflen)
 {
-    if (buflen < 4)
+    if (buflen < sizeof(coap_raw_header_t))
         return COAP_ERR_HEADER_TOO_SHORT;
 
-    hdr->ver = (buf[0] & 0xC0) >> 6;
+    coap_raw_header_t *r = (coap_raw_header_t*)buf;
+    hdr->ver = r->hdr.ver;
+    hdr->t = r->hdr.t;
+    hdr->tkl = r->hdr.tkl;
+    hdr->code = r->hdr.code;
+    hdr->id = r->hdr.id;
+
     if (hdr->ver != 1)
         return COAP_ERR_VERSION_NOT_1;
 
-    hdr->t = (buf[0] & 0x30) >> 4;
-    hdr->tkl = buf[0] & 0x0F;
-    hdr->code = buf[1];
-    hdr->id[0] = buf[2];
-    hdr->id[1] = buf[3];
     return 0;
 }
 
@@ -61,24 +73,18 @@ int coap_parseToken(coap_packet_t *pkt, const uint8_t *buf, size_t buflen)
     coap_buffer_t *tok = &(pkt->tok);
     int toklen = pkt->hdr.tkl;
 
-    if (!toklen)
-    {
-        pkt->tok.p = NULL;
-        pkt->tok.len = 0;
-
-        return 0;
-    }
-    else if (toklen <= 8)
-    {
-        if (4U + toklen > buflen) // token to long actually
-            return COAP_ERR_TOKEN_TOO_SHORT;
-
-        pkt->tok.p = buf + 4;  // past header
-        pkt->tok.len = toklen;
-        return 0;
-    }
-    else
+    // validate the token length
+    if (sizeof(coap_raw_header_t) + toklen > buflen || toklen > 8)
         return COAP_ERR_TOKEN_TOO_SHORT;
+
+    tok->len = toklen;
+
+    if (!toklen)
+        tok->p = NULL;
+    else
+        tok->p = buf + sizeof(coap_raw_header_t);  // past header
+
+    return 0;
 }
 
 // advances p
@@ -149,35 +155,38 @@ int coap_parseOption(coap_option_t *option, uint16_t *running_delta, const uint8
 }
 
 // http://tools.ietf.org/html/rfc7252#section-3.1
-int coap_parseOptionsAndPayload(coap_option_t *options, uint8_t *numOptions, coap_buffer_t *payload, const coap_header_t *hdr, const uint8_t *buf, size_t buflen)
+int coap_parseOptionsAndPayload(coap_packet_t *pkt, const uint8_t *buf, size_t buflen)
 {
     size_t optionIndex = 0;
     uint16_t delta = 0;
-    const uint8_t *p = buf + 4 + hdr->tkl;
+    const uint8_t *p = buf + sizeof(coap_raw_header_t) + pkt->hdr.tkl;
     const uint8_t *end = buf + buflen;
     int rc;
     if (p > end)
         return COAP_ERR_OPTION_OVERRUNS_PACKET;   // out of bounds
 
     // 0xFF is payload marker
-    while((optionIndex < *numOptions) && (p < end) && (*p != 0xFF))
+    while((optionIndex < MAXOPT) && (p < end) && (*p != 0xFF))
     {
-        if (0 != (rc = coap_parseOption(&options[optionIndex], &delta, &p, end-p)))
+        rc = coap_parseOption(&pkt->opts[optionIndex], &delta, &p, end - p);
+        if (rc)
             return rc;
 
         optionIndex++;
     }
-    *numOptions = optionIndex;
 
-    if ((p + 1) < end && *p == 0xFF)  // payload marker
+    pkt->numopts = optionIndex;
+
+    // payload marker
+    if ((p + 1) < end && *p == 0xFF)
     {
-        payload->p = p+1;
-        payload->len = end-(p+1);
+        pkt->payload.p = p + 1;
+        pkt->payload.len = end - (p + 1);
     }
     else
     {
-        payload->p = NULL;
-        payload->len = 0;
+        pkt->payload.p = NULL;
+        pkt->payload.len = 0;
     }
 
     return 0;
@@ -221,7 +230,7 @@ int coap_parse(coap_packet_t *pkt, const uint8_t *buf, size_t buflen)
         return rc;
 
     pkt->numopts = MAXOPT;
-    rc = coap_parseOptionsAndPayload(pkt->opts, &(pkt->numopts), &(pkt->payload), &pkt->hdr, buf, buflen);
+    rc = coap_parseOptionsAndPayload(pkt, buf, buflen);
     if (rc)
         return rc;
 
@@ -229,26 +238,28 @@ int coap_parse(coap_packet_t *pkt, const uint8_t *buf, size_t buflen)
 }
 
 // options are always stored consecutively, so can return a block with same option num
-const coap_option_t *coap_findOptions(const coap_packet_t *pkt, uint8_t num, uint8_t *count)
+const coap_option_t *coap_findOptions(const coap_packet_t *pkt, coap_option_num_t num, uint8_t *count)
 {
     // FIXME, options is always sorted, can find faster than this
-    size_t i;
     const coap_option_t *first = NULL;
+    size_t i;
+
     *count = 0;
-    for (i=0;i<pkt->numopts;i++)
+
+    for (i = 0; i < pkt->numopts; ++i)
     {
-        if (pkt->opts[i].num == num)
-        {
-            if (NULL == first)
-                first = &pkt->opts[i];
-            (*count)++;
-        }
-        else
-        {
-            if (NULL != first)
+        if (pkt->opts[i].num != num) {
+            if (!first)
+                continue;
+            else
                 break;
         }
+
+        ++(*count);
+        if (!first)
+            first = &pkt->opts[i];
     }
+
     return first;
 }
 
@@ -256,6 +267,7 @@ int coap_buffer_to_string(char *strbuf, size_t strbuflen, const coap_buffer_t *b
 {
     if (buf->len+1 > strbuflen)
         return COAP_ERR_BUFFER_TOO_SMALL;
+
     memcpy(strbuf, buf->p, buf->len);
     strbuf[buf->len] = 0;
     return 0;
@@ -263,24 +275,24 @@ int coap_buffer_to_string(char *strbuf, size_t strbuflen, const coap_buffer_t *b
 
 int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
 {
-    size_t opts_len = 0;
-    size_t i;
-    uint8_t *p;
     uint16_t running_delta = 0;
+    size_t opts_len = 0;
+    uint8_t *p;
+    size_t i;
 
     // build header
-    if (*buflen < (4U + pkt->hdr.tkl))
+    if (*buflen < (sizeof(coap_raw_header_t) + pkt->hdr.tkl))
         return COAP_ERR_BUFFER_TOO_SMALL;
 
-    buf[0] = (pkt->hdr.ver & 0x03) << 6;
-    buf[0] |= (pkt->hdr.t & 0x03) << 4;
-    buf[0] |= (pkt->hdr.tkl & 0x0F);
-    buf[1] = pkt->hdr.code;
-    buf[2] = pkt->hdr.id[0];
-    buf[3] = pkt->hdr.id[1];
+    coap_raw_header_t *r = (coap_raw_header_t*)buf;
+    r->hdr.ver = pkt->hdr.ver;
+    r->hdr.t = pkt->hdr.t;
+    r->hdr.tkl = pkt->hdr.tkl;
+    r->hdr.code = pkt->hdr.code;
+    r->hdr.id = pkt->hdr.id;
 
     // inject token
-    p = buf + 4;
+    p = buf + sizeof(coap_raw_header_t);
     if ((pkt->hdr.tkl > 0) && (pkt->hdr.tkl != pkt->tok.len))
         return COAP_ERR_UNSUPPORTED;
     
@@ -291,13 +303,14 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
     // inject options
     p += pkt->hdr.tkl;
 
-    for (i=0;i<pkt->numopts;i++)
+    for (i = 0; i < pkt->numopts; ++i)
     {
         uint32_t optDelta;
         uint8_t len, delta = 0;
 
-        if (((size_t)(p-buf)) > *buflen)
+        if (((size_t)(p - buf)) > *buflen)
              return COAP_ERR_BUFFER_TOO_SMALL;
+
         optDelta = pkt->opts[i].num - running_delta;
         coap_option_nibble(optDelta, &delta);
         coap_option_nibble((uint32_t)pkt->opts[i].buf.len, &len);
@@ -328,19 +341,19 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
         running_delta = pkt->opts[i].num;
     }
 
-    opts_len = (p - buf) - 4;   // number of bytes used by options
+    opts_len = (p - buf) - sizeof(coap_raw_header_t);   // number of bytes used by options
 
     if (pkt->payload.len > 0)
     {
-        if (*buflen < 4 + 1 + pkt->payload.len + opts_len)
+        if (*buflen < sizeof(coap_raw_header_t) + 1 + pkt->payload.len + opts_len)
             return COAP_ERR_BUFFER_TOO_SMALL;
 
-        buf[4 + opts_len] = 0xFF;  // payload marker
+        buf[sizeof(coap_raw_header_t) + opts_len] = 0xFF;  // payload marker
         memcpy(buf+5 + opts_len, pkt->payload.p, pkt->payload.len);
         *buflen = opts_len + 5 + pkt->payload.len;
     }
     else
-        *buflen = opts_len + 4;
+        *buflen = opts_len + sizeof(coap_raw_header_t);
 
     return 0;
 }
@@ -363,8 +376,7 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
     pkt->hdr.t = msg_type;
     pkt->hdr.tkl = 0;
     pkt->hdr.code = rspcode;
-    pkt->hdr.id[0] = inpkt->hdr.id[0];
-    pkt->hdr.id[1] = inpkt->hdr.id[1];
+    pkt->hdr.id = inpkt->hdr.id;
 
     // need token in response
     pkt->hdr.tkl = inpkt->tok.len;

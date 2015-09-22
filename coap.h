@@ -96,6 +96,7 @@ typedef enum
 #define MAKE_RSPCODE(clas, det) ((clas << 5) | (det))
 typedef enum
 {
+    COAP_RSPCODE_EMPTY = MAKE_RSPCODE(0, 0),
     COAP_RSPCODE_CONTENT = MAKE_RSPCODE(2, 5),
     COAP_RSPCODE_NOT_FOUND = MAKE_RSPCODE(4, 4),
     COAP_RSPCODE_BAD_REQUEST = MAKE_RSPCODE(4, 0),
@@ -105,6 +106,7 @@ typedef enum
 //http://tools.ietf.org/html/rfc7252#section-12.3
 typedef enum
 {
+    COAP_CONTENTTYPE_EMPTY = -2, // bodge to allow us not to send an empty block
     COAP_CONTENTTYPE_NONE = -1, // bodge to allow us not to send option block
     COAP_CONTENTTYPE_TEXT_PLAIN = 0,
     COAP_CONTENTTYPE_APPLICATION_LINKFORMAT = 40,
@@ -130,8 +132,13 @@ typedef enum
 
 ///////////////////////
 
-typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt, uint8_t id_hi, uint8_t id_lo);
+typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt);
+/* To increase COAP_MAX_SEGMENTS, set CFLAGS to -DCOAP_MAX_SEGMENTS=<your value>. */
+#ifndef COAP_MAX_SEGMENTS
 #define MAX_SEGMENTS 2  // 2 = /foo/bar, 3 = /foo/bar/baz
+#else
+#define MAX_SEGMENTS (COAP_MAX_SEGMENTS)
+#endif
 typedef struct
 {
     int count;
@@ -154,16 +161,36 @@ typedef struct
 
 
 ///////////////////////
+#ifdef MICROCOAP_DEBUG
 void coap_dumpPacket(coap_packet_t *pkt);
-int coap_parse(coap_packet_t *pkt, const uint8_t *buf, size_t buflen);
-int coap_buffer_to_string(char *strbuf, size_t strbuflen, const coap_buffer_t *buf);
-const coap_option_t *coap_findOptions(const coap_packet_t *pkt, uint8_t num, uint8_t *count);
-int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt);
+#else
+#define coap_dumpPacket(pkt)
+#endif
+
+#ifdef MICROCOAP_DEBUG
 void coap_dump(const uint8_t *buf, size_t buflen, bool bare);
-int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint8_t *content, size_t content_len, uint8_t msgid_hi, uint8_t msgid_lo, const coap_buffer_t* tok, coap_responsecode_t rspcode, coap_content_type_t content_type);
+#else
+#define coap_dump(buf, buflen, bare)
+#endif
+
+int coap_parse(coap_packet_t *pkt, const uint8_t *buf, size_t buflen);
+
+int coap_buffer_to_string(char *strbuf, size_t strbuflen, const coap_buffer_t *buf);
+
+const coap_option_t *coap_findOptions(const coap_packet_t *pkt, uint8_t num, uint8_t *count);
+
+int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt);
+
+int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint8_t *content, size_t content_len,
+                       const coap_packet_t *inpkt, coap_responsecode_t rspcode,
+                       coap_content_type_t content_type, coap_msgtype_t msg_type);
+
 int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt);
+
 void coap_option_nibble(uint32_t value, uint8_t *nibble);
+
 void coap_setup(void);
+
 void endpoint_setup(void);
 
 #ifdef __cplusplus

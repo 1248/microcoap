@@ -6,8 +6,18 @@
 #include <stddef.h>
 #include "coap.h"
 
-extern void endpoint_setup(void);
 extern const coap_endpoint_t endpoints[];
+
+typedef union {
+    uint8_t raw;
+    struct {
+        uint8_t tkl     : 4;
+        uint8_t t       : 2;
+        uint8_t ver     : 2;
+        uint8_t code;
+        uint16_t id;
+    } hdr;
+} coap_raw_header_t;
 
 #ifdef MICROCOAP_DEBUG
 void coap_dumpHeader(coap_header_t *hdr)
@@ -38,17 +48,6 @@ void coap_dump(const uint8_t *buf, size_t buflen, bool bare)
     }
 }
 #endif
-
-typedef union {
-    uint8_t raw;
-    struct {
-        uint8_t tkl     : 4;
-        uint8_t t       : 2;
-        uint8_t ver     : 2;
-        uint8_t code;
-        uint16_t id;
-    } hdr;
-} coap_raw_header_t;
 
 int coap_parseHeader(coap_header_t *hdr, const uint8_t *buf, size_t buflen)
 {
@@ -402,6 +401,34 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
     return 0;
 }
 
+typedef struct __attribute__((packed)) {
+    uint8_t szx      : 3;
+    uint8_t more     : 1;
+    uint8_t num      : 4;
+} coap_opt_block2_t;
+
+int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt)
+{
+    uint8_t count;
+    const coap_option_t *opt;
+    uint8_t block[128];
+
+    (void) scratch;
+    (void) outpkt;
+    (void) block;
+
+    opt = coap_findOptions(inpkt, COAP_OPTION_BLOCK2, &count);
+    if (!opt || count != 1)
+        return COAP_ERR_OPTION_LEN_INVALID;
+
+    coap_opt_block2_t *blk = (coap_opt_block2_t*)(opt->buf.p);
+    uint8_t size = 2 << (blk->szx + 3);
+
+    (void) size;
+
+    return 0;
+}
+
 // FIXME, if this looked in the table at the path before the method then
 // it could more easily return 405 errors
 int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt)
@@ -413,8 +440,20 @@ int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_
 
     // special case, this is a ping message
     if (inpkt->hdr.code == 0) {
-        coap_make_response(scratch, outpkt, NULL, 0, inpkt, COAP_RSPCODE_EMPTY, COAP_CONTENTTYPE_EMPTY, COAP_TYPE_RESET);
+        coap_make_response(scratch, outpkt, NULL, 0, inpkt, COAP_RSPCODE_EMPTY, COAP_CONTENTTYPE_NONE, COAP_TYPE_RESET);
         return 0;
+    }
+
+    // special case, if this is a get of .well-known.core
+    if (inpkt->hdr.code == COAP_METHOD_GET) {
+        opt = coap_findOptions(inpkt, COAP_OPTION_URI_PATH, &count);
+        if (opt && count == 2) {
+#define STAT_STR(str)               #str, (sizeof(#str) - 1)
+            if (!strncmp((char*)opt[0].buf.p, STAT_STR(.well-known))
+                    && !strncmp((char*)opt[1].buf.p, STAT_STR(core)))
+                return coap_send_endpoint_list(scratch, inpkt, outpkt);
+#undef STAT_STR
+        }
     }
 
     // search trough all the handles to find a response

@@ -21,7 +21,6 @@ typedef struct
                                  * client error response (4.xx), or rever error response (5.xx) 
                                  * For possible values, see http://tools.ietf.org/html/rfc7252#section-12.1 */
     uint16_t id;
-    //uint8_t id[2];
 } coap_header_t;
 
 typedef struct
@@ -70,6 +69,8 @@ typedef enum
     COAP_OPTION_URI_QUERY = 15,
     COAP_OPTION_ACCEPT = 17,
     COAP_OPTION_LOCATION_QUERY = 20,
+    COAP_OPTION_BLOCK2 = 23,
+    //COAP_OPTION_BLOCK1 = 23,
     COAP_OPTION_PROXY_URI = 35,
     COAP_OPTION_PROXY_SCHEME = 39
 } coap_option_num_t;
@@ -107,8 +108,7 @@ typedef enum
 //http://tools.ietf.org/html/rfc7252#section-12.3
 typedef enum
 {
-    COAP_CONTENTTYPE_EMPTY = -2, // bodge to allow us not to send an empty block
-    COAP_CONTENTTYPE_NONE = -1, // bodge to allow us not to send option block
+    COAP_CONTENTTYPE_NONE = -1, // bogus to allow us not to send option block
     COAP_CONTENTTYPE_TEXT_PLAIN = 0,
     COAP_CONTENTTYPE_APPLICATION_LINKFORMAT = 40,
 } coap_content_type_t;

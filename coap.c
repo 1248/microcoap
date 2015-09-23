@@ -367,6 +367,19 @@ void coap_option_nibble(uint32_t value, uint8_t *nibble)
         *nibble = 14;
 }
 
+int coap_add_option(coap_packet_t *pkt, uint8_t num, const void *p, size_t len)
+{
+    if (pkt->numopts == MAXOPT) {
+        return 1;
+    }
+
+    coap_option_t *opt = &pkt->opts[pkt->numopts++];
+    opt->num = num;
+    opt->buf.p = p;
+    opt->buf.len = len;
+    return 0;
+}
+
 int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint8_t *content, size_t content_len,
                        const coap_packet_t *inpkt, coap_responsecode_t rspcode,
                        coap_content_type_t content_type, coap_msgtype_t msg_type)
@@ -411,20 +424,113 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
 {
     uint8_t count;
     const coap_option_t *opt;
-    uint8_t block[128];
 
     (void) scratch;
     (void) outpkt;
-    (void) block;
 
+    // find the block option
     opt = coap_findOptions(inpkt, COAP_OPTION_BLOCK2, &count);
     if (!opt || count != 1)
         return COAP_ERR_OPTION_LEN_INVALID;
 
+    // decode the block request option
     coap_opt_block2_t *blk = (coap_opt_block2_t*)(opt->buf.p);
-    uint8_t size = 2 << (blk->szx + 3);
+    int size = 2 << (blk->szx + 3);
+    int offset = size * blk->num;
+    int copy = 0;
+    uint8_t buffer[size];
 
-    (void) size;
+    if (offset) {
+        puts("ohai");
+    }
+
+#define BUF_TAKE(x)         if (spc_left <= 0) break;                   \
+                            spc_left -= (x);                            \
+                            copy = spc_left >= 0 ? (x) : (x) + spc_left
+
+#define OFF_TAKE(x)         (offset <= 0                \
+                            || ((offset -= (x)) < 0     \
+                            && (offset = (x) + offset) >= 0))
+
+#define CLR_OFFSET()        offset -= offset
+
+    // get offset in application/link-format
+    int spc_left = size;
+    uint8_t *buf = buffer;
+    const coap_endpoint_t *ep = endpoints;
+    for (ep = endpoints; ep && ep->handler; ++ep)
+    {
+        if (ep->core_attr < 0)
+            continue;
+
+        if (ep != endpoints) {
+            if (OFF_TAKE(1)) {
+                BUF_TAKE(1);
+                *buf++ = ',';
+            }
+        }
+
+        if (OFF_TAKE(1)) {
+            BUF_TAKE(1);
+            *buf++ = '<';
+        }
+
+        for (int idx = 0; idx < ep->path->count; ++idx) {
+            if (OFF_TAKE(1)) {
+                BUF_TAKE(1);
+                *buf++ = '/';
+            }
+
+            if (OFF_TAKE(ep->path->elems[idx].len)) {
+                BUF_TAKE(ep->path->elems[idx].len - offset);
+
+                memcpy(buf, ep->path->elems[idx].str + offset, copy);
+                buf += copy;
+                CLR_OFFSET();
+            }
+        }
+
+        if (OFF_TAKE(1)) {
+            BUF_TAKE(1);
+            *buf++ = '>';
+        }
+
+        if (OFF_TAKE(1)) {
+            BUF_TAKE(1);
+            *buf++ = ';';
+        }
+
+        if (OFF_TAKE(3)) {
+            BUF_TAKE(3);
+            memcpy(buf, "ct=" + offset, copy);
+            buf += copy;
+            CLR_OFFSET();
+        }
+
+        if (ep->core_attr) {
+            if (OFF_TAKE(1)) {
+                BUF_TAKE(1);
+                *buf++ = '0' + (ep->core_attr / 10);
+            }
+
+            if (OFF_TAKE(1)) {
+                BUF_TAKE(1);
+                *buf++ = '0' + (ep->core_attr % 10);
+            }
+        } else {
+            if (OFF_TAKE(1)) {
+                BUF_TAKE(1);
+                *buf++ = '0';
+            }
+        }
+    }
+
+#undef BUF_TAKE
+
+    coap_make_response(scratch, outpkt, buffer, spc_left >= 0 ? size - spc_left : size, inpkt, COAP_RSPCODE_CONTENT, COAP_CONTENTTYPE_APPLICATION_LINKFORMAT, COAP_TYPE_ACK);
+
+    blk->more = (spc_left <= 0);
+    coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_t));
 
     return 0;
 }
@@ -475,7 +581,7 @@ int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_
         // check if the strings match
         int match = 1;
         for (i = 0; match && i < count; ++i)
-            match = (strncmp(ep->path->elems[i], (char*)opt[i].buf.p, opt[i].buf.len) == 0);
+            match = (strncmp(ep->path->elems[i].str, (char*)opt[i].buf.p, opt[i].buf.len) == 0);
 
         // if we have our endpoint handle it
         if (match)

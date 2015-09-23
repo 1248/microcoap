@@ -108,9 +108,13 @@ typedef enum
 //http://tools.ietf.org/html/rfc7252#section-12.3
 typedef enum
 {
-    COAP_CONTENTTYPE_NONE = -1, // bogus to allow us not to send option block
-    COAP_CONTENTTYPE_TEXT_PLAIN = 0,
-    COAP_CONTENTTYPE_APPLICATION_LINKFORMAT = 40,
+    COAP_CONTENTTYPE_NONE                       = -1, // bogus to allow us not to send option block
+    COAP_CONTENTTYPE_TEXT_PLAIN                 = 0,
+    COAP_CONTENTTYPE_APPLICATION_LINKFORMAT     = 40,
+    COAP_CONTENTTYPE_APPLICATION_XML            = 41,
+    COAP_CONTENTTYPE_APPLICATION_OCT_STREAM     = 42,
+    COAP_CONTENTTYPE_APPLICATION_EXI            = 47,
+    COAP_CONTENTTYPE_APPLICATION_JSON           = 50
 } coap_content_type_t;
 
 ///////////////////////
@@ -142,8 +146,26 @@ typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t
 #endif
 typedef struct
 {
+    uint8_t len;
+    const char *str;
+} coap_path_element_t;
+
+#if MAX_SEGMENTS >= 1
+# define PATH_ELEMENT1(str1)              { 1, { { sizeof(#str1) - 1, #str1 } } }
+#endif
+
+#if MAX_SEGMENTS >= 2
+# define PATH_ELEMENT2(str1, str2)        { 2, { { sizeof(#str1) - 1, #str1 }, { sizeof(#str2) - 1, #str2 } } }
+#endif
+
+#if MAX_SEGMENTS >= 3
+# define PATH_ELEMENT3(str1, str2, str3)  { 3, { { sizeof(#str1) - 1, #str1 }, { sizeof(#str2) - 1, #str2 }, { sizeof(#str3) - 1, #str3 } } }
+#endif
+
+typedef struct
+{
     int count;
-    const char *elems[MAX_SEGMENTS];
+    coap_path_element_t elems[MAX_SEGMENTS];
 } coap_endpoint_path_t;
 
 typedef struct
@@ -152,14 +174,13 @@ typedef struct
     coap_endpoint_func handler;         /* callback function which handles this 
                                          * type of endpoint (and calls 
                                          * coap_make_response() at some point) */
-    const coap_endpoint_path_t *path;   /* path towards a resource (i.e. foo/bar/) */ 
-    const char *core_attr;              /* the 'ct' attribute, as defined in RFC7252, section 7.2.1.:
+    const coap_endpoint_path_t *path;   /* path towards a resource (i.e. foo/bar/) */
+    coap_content_type_t core_attr;      /* the 'ct' attribute, as defined in RFC7252, section 7.2.1.:
                                          * "The Content-Format code "ct" attribute 
                                          * provides a hint about the 
                                          * Content-Formats this resource returns." 
                                          * (Section 12.3. lists possible ct values.) */
 } coap_endpoint_t;
-
 
 ///////////////////////
 #ifdef MICROCOAP_DEBUG
@@ -190,9 +211,7 @@ int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_
 
 void coap_option_nibble(uint32_t value, uint8_t *nibble);
 
-void coap_setup(void);
-
-void endpoint_setup(void);
+int coap_add_option(coap_packet_t *pkt, uint8_t num, const void *p, size_t len);
 
 #ifdef __cplusplus
 }

@@ -420,6 +420,13 @@ typedef struct __attribute__((packed)) {
     uint8_t num      : 4;
 } coap_opt_block2_t;
 
+typedef struct __attribute__((packed)) {
+    uint8_t szx      : 3;
+    uint8_t more     : 1;
+    uint8_t num1     : 4;
+    uint8_t num2     : 8;
+} coap_opt_block2_lng_t;
+
 int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt)
 {
     uint8_t count;
@@ -434,15 +441,20 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
         return COAP_ERR_OPTION_LEN_INVALID;
 
     // decode the block request option
-    coap_opt_block2_t *blk = (coap_opt_block2_t*)(opt->buf.p);
-    int size = 2 << (blk->szx + 3);
-    int offset = size * blk->num;
-    int copy = 0;
-    uint8_t buffer[size];
-
-    if (offset) {
-        puts("ohai");
+    int size, offset, copy = 0;
+    if (opt->buf.len == 1) {
+        coap_opt_block2_t *blk = (coap_opt_block2_t*)(opt->buf.p);
+        size = 2 << (blk->szx + 3);
+        offset = size * blk->num;
     }
+    else if (opt->buf.len == 2) {
+        coap_opt_block2_lng_t *blk = (coap_opt_block2_lng_t*)(opt->buf.p);
+        size = 2 << (blk->szx + 3);
+        uint16_t num = ((uint16_t)blk->num1) | (((uint16_t)blk->num2) << 8);
+        offset = size * num;
+    }
+
+    uint8_t buffer[size];
 
 #define BUF_TAKE(x)         if (spc_left <= 0) break;                   \
                             spc_left -= (x);                            \
@@ -500,6 +512,36 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
             *buf++ = ';';
         }
 
+        if (OFF_TAKE(6)) {
+            BUF_TAKE(6);
+            memcpy(buf, "title=" + offset, copy);
+            buf += copy;
+            CLR_OFFSET();
+        }
+
+        if (OFF_TAKE(1)) {
+            BUF_TAKE(1);
+            *buf++ = '"';
+        }
+
+        if (OFF_TAKE(ep->path->title.len)) {
+            BUF_TAKE(ep->path->title.len - offset);
+
+            memcpy(buf, ep->path->title.str + offset, copy);
+            buf += copy;
+            CLR_OFFSET();
+        }
+
+        if (OFF_TAKE(1)) {
+            BUF_TAKE(1);
+            *buf++ = '"';
+        }
+
+        if (OFF_TAKE(1)) {
+            BUF_TAKE(1);
+            *buf++ = ';';
+        }
+
         if (OFF_TAKE(3)) {
             BUF_TAKE(3);
             memcpy(buf, "ct=" + offset, copy);
@@ -529,8 +571,16 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
 
     coap_make_response(scratch, outpkt, buffer, spc_left >= 0 ? size - spc_left : size, inpkt, COAP_RSPCODE_CONTENT, COAP_CONTENTTYPE_APPLICATION_LINKFORMAT, COAP_TYPE_ACK);
 
-    blk->more = (spc_left <= 0);
-    coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_t));
+    if (opt->buf.len == 1) {
+        coap_opt_block2_t *blk = (coap_opt_block2_t*)(opt->buf.p);
+        blk->more = (spc_left <= 0);
+        coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_t));
+    }
+    else if (opt->buf.len == 2) {
+        coap_opt_block2_lng_t *blk = (coap_opt_block2_lng_t*)(opt->buf.p);
+        blk->more = (spc_left <= 0);
+        coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_t));
+    }
 
     return 0;
 }
@@ -554,11 +604,9 @@ int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_
     if (inpkt->hdr.code == COAP_METHOD_GET) {
         opt = coap_findOptions(inpkt, COAP_OPTION_URI_PATH, &count);
         if (opt && count == 2) {
-#define STAT_STR(str)               #str, (sizeof(#str) - 1)
             if (!strncmp((char*)opt[0].buf.p, STAT_STR(.well-known))
                     && !strncmp((char*)opt[1].buf.p, STAT_STR(core)))
                 return coap_send_endpoint_list(scratch, inpkt, outpkt);
-#undef STAT_STR
         }
     }
 

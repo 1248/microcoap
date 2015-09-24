@@ -144,18 +144,24 @@ typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t
 #else
 #define MAX_SEGMENTS (COAP_MAX_SEGMENTS)
 #endif
+
+#define COAP_MAX_DYN_STR_LEN              15
+
 typedef struct
 {
-    uint8_t len;
     const char *str;
-} coap_path_element_t;
+    uint8_t len;
+} coap_str_element_t;
+
+#define STAT_STR(str)                       #str, sizeof(#str) - 1
+#define STAT_STR_EL(str)                    { STAT_STR(str) }
 
 #if MAX_SEGMENTS >= 1
-# define PATH_ELEMENT1(str1)              { 1, { { sizeof(#str1) - 1, #str1 } } }
+# define PATH_ELEMENT(title, str)           { 1, STAT_STR_EL(title) { STAT_STR_EL(str) } }
 #endif
 
 #if MAX_SEGMENTS >= 2
-# define PATH_ELEMENT2(str1, str2)        { 2, { { sizeof(#str1) - 1, #str1 }, { sizeof(#str2) - 1, #str2 } } }
+# define PATH_ELEMENT2(title, str1, str2)   { 2, STAT_STR_EL(title), { STAT_STR_EL(str1), STAT_STR_EL(str2) } }
 #endif
 
 #if MAX_SEGMENTS >= 3
@@ -165,7 +171,8 @@ typedef struct
 typedef struct
 {
     int count;
-    coap_path_element_t elems[MAX_SEGMENTS];
+    coap_str_element_t title;
+    coap_str_element_t elems[MAX_SEGMENTS];
 } coap_endpoint_path_t;
 
 typedef struct

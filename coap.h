@@ -78,10 +78,12 @@ typedef enum
 //http://tools.ietf.org/html/rfc7252#section-12.1.1
 typedef enum
 {
-    COAP_METHOD_GET = 1,
-    COAP_METHOD_POST = 2,
-    COAP_METHOD_PUT = 3,
-    COAP_METHOD_DELETE = 4
+    COAP_METHOD_GET         = (1 << 0),
+    COAP_METHOD_POST        = (1 << 1),
+    COAP_METHOD_PUT         = (1 << 2),
+    COAP_METHOD_DELETE      = (1 << 3),
+
+    COAP_METHOD_ALL         = (COAP_METHOD_GET | COAP_METHOD_POST | COAP_METHOD_PUT | COAP_METHOD_DELETE)
 } coap_method_t;
 
 //http://tools.ietf.org/html/rfc7252#section-12.1.1

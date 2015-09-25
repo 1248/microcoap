@@ -8,6 +8,27 @@
 
 extern const coap_endpoint_t endpoints[];
 
+typedef struct __attribute__((packed)) {
+    uint8_t szx      : 3;
+    uint8_t more     : 1;
+    uint8_t num      : 4;
+} coap_opt_block2_t;
+
+typedef struct __attribute__((packed)) {
+    uint8_t num2     : 8;
+    uint8_t szx      : 3;
+    uint8_t more     : 1;
+    uint8_t num1     : 4;
+} coap_opt_block2_lng_t;
+
+typedef struct __attribute__((packed)) {
+    uint8_t num3     : 8;
+    uint8_t num2     : 8;
+    uint8_t szx      : 3;
+    uint8_t more     : 1;
+    uint8_t num1     : 4;
+} coap_opt_block3_lng_t;
+
 typedef union {
     uint8_t raw;
     struct {
@@ -414,19 +435,6 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
     return 0;
 }
 
-typedef struct __attribute__((packed)) {
-    uint8_t szx      : 3;
-    uint8_t more     : 1;
-    uint8_t num      : 4;
-} coap_opt_block2_t;
-
-typedef struct __attribute__((packed)) {
-    uint8_t szx      : 3;
-    uint8_t more     : 1;
-    uint8_t num1     : 4;
-    uint8_t num2     : 8;
-} coap_opt_block2_lng_t;
-
 int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt)
 {
     uint8_t count;
@@ -450,7 +458,13 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
     else if (opt->buf.len == 2) {
         coap_opt_block2_lng_t *blk = (coap_opt_block2_lng_t*)(opt->buf.p);
         size = 2 << (blk->szx + 3);
-        uint16_t num = ((uint16_t)blk->num1) | (((uint16_t)blk->num2) << 8);
+        uint16_t num = ((uint16_t)blk->num1) | (((uint16_t)blk->num2) << 4);
+        offset = size * num;
+    }
+    else if (opt->buf.len == 3) {
+        coap_opt_block3_lng_t *blk = (coap_opt_block3_lng_t*)(opt->buf.p);
+        size = 2 << (blk->szx + 3);
+        uint32_t num = ((uint32_t)blk->num1) | (((uint32_t)blk->num2) << 4) | (((uint32_t)blk->num3) << 12);
         offset = size * num;
     }
 
@@ -579,7 +593,7 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
     else if (opt->buf.len == 2) {
         coap_opt_block2_lng_t *blk = (coap_opt_block2_lng_t*)(opt->buf.p);
         blk->more = (spc_left <= 0);
-        coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_t));
+        coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_lng_t));
     }
 
     return 0;
@@ -614,7 +628,7 @@ int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_
     for (ep = endpoints; ep->handler; ++ep)
     {
         // check if the endpoint handles the request code
-        if (ep->method != inpkt->hdr.code)
+        if (!(ep->method & (1 << (inpkt->hdr.code - 1))))
             continue;
 
         // get the URI path options

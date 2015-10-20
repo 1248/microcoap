@@ -284,7 +284,7 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
     p = buf + 4;
     if ((pkt->hdr.tkl > 0) && (pkt->hdr.tkl != pkt->tok.len))
         return COAP_ERR_UNSUPPORTED;
-    
+
     if (pkt->hdr.tkl > 0)
         memcpy(p, pkt->tok.p, pkt->hdr.tkl);
 
@@ -320,7 +320,7 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
         }
         else
         if (len == 14)
-  	    {
+          {
             *p++ = (pkt->opts[i].buf.len >> 8);
             *p++ = (0xFF & (pkt->opts[i].buf.len-269));
         }
@@ -397,28 +397,35 @@ int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_
     const coap_option_t *opt;
     uint8_t count;
     int i;
-    const coap_endpoint_t *ep = endpoints;
+    const coap_endpoint_t *ep;
 
-    while(NULL != ep->handler)
-    {
+    for (ep = endpoints; NULL != ep->handler; ++ep) {
         if (ep->method != inpkt->hdr.code)
-            goto next;
+        {
+            continue;
+        }
         if (NULL != (opt = coap_findOptions(inpkt, COAP_OPTION_URI_PATH, &count)))
         {
             if (count != ep->path->count)
-                goto next;
-            for (i=0;i<count;i++)
+            {
+                continue;
+            }
+            for (i=0; i<count; ++i)
             {
                 if (opt[i].buf.len != strlen(ep->path->elems[i]))
-                    goto next;
+                {
+                    break;
+                }
                 if (0 != memcmp(ep->path->elems[i], opt[i].buf.p, opt[i].buf.len))
-                    goto next;
+                {
+                    break;
+                }
             }
-            // match!
-            return ep->handler(scratch, inpkt, outpkt, inpkt->hdr.id[0], inpkt->hdr.id[1]);
+            if (i == count) // enpoint path matches inpkt path
+            {
+                return ep->handler(scratch, inpkt, outpkt, inpkt->hdr.id[0], inpkt->hdr.id[1]);
+            }
         }
-next:
-        ep++;
     }
 
     coap_make_response(scratch, outpkt, NULL, 0, inpkt->hdr.id[0], inpkt->hdr.id[1], &inpkt->tok, COAP_RSPCODE_NOT_FOUND, COAP_CONTENTTYPE_NONE);
@@ -429,4 +436,3 @@ next:
 void coap_setup(void)
 {
 }
-

@@ -180,7 +180,10 @@ typedef struct
 
 struct coap_endpoint;
 
-typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt, coap_method_t method, const struct coap_endpoint *endpoint);
+typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt, coap_method_t method, const struct coap_endpoint *endpoint, void *args);
+
+typedef coap_responsecode_t (*coap_endpoint_request)(coap_method_t method, const char *name, uint8_t *value, size_t *len, size_t max_len);
+
 
 #define STAT_STR(str)                       #str, sizeof(#str) - 1
 #define STAT_STR_EL(str)                    { STAT_STR(str) }
@@ -243,7 +246,7 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
                        const coap_packet_t *inpkt, coap_responsecode_t rspcode,
                        coap_content_type_t content_type, coap_msgtype_t msg_type);
 
-int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt);
+int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt, void *args);
 
 void coap_option_nibble(uint32_t value, uint8_t *nibble);
 

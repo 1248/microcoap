@@ -628,7 +628,7 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
 
 // FIXME, if this looked in the table at the path before the method then
 // it could more easily return 405 errors
-int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt)
+int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt, void *args)
 {
     const coap_endpoint_t *ep = endpoints;
     const coap_option_t *opt;
@@ -669,7 +669,7 @@ int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_
 
         // check if the endpoint handles the request code
         if (ep->method & _COAP_HEADER_TO_METHOD(inpkt->hdr.code))
-            return ep->handler(scratch, inpkt, outpkt, _COAP_HEADER_TO_METHOD(inpkt->hdr.code), ep);
+            return ep->handler(scratch, inpkt, outpkt, _COAP_HEADER_TO_METHOD(inpkt->hdr.code), ep, args);
 
         // method not supported
         coap_make_response(scratch, outpkt, NULL, 0, inpkt, COAP_RSPCODE_METHOD_NOT_ALLOWED, COAP_CONTENTTYPE_NONE, COAP_TYPE_ACK);

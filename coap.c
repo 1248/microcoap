@@ -435,6 +435,18 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
     return 0;
 }
 
+static uint8_t _default_blksize_buffer[2] = {
+        ((64 >> 2) - 6)
+};
+
+static const coap_option_t _default_blksize = {
+        COAP_OPTION_BLOCK2,
+        {
+            _default_blksize_buffer,
+            1
+        }
+};
+
 int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt)
 {
     uint8_t count;
@@ -445,27 +457,32 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
 
     // find the block option
     opt = coap_findOptions(inpkt, COAP_OPTION_BLOCK2, &count);
-    if (!opt || count != 1)
-        return COAP_ERR_OPTION_LEN_INVALID;
+    if (!opt) {
+        count = 1;
+        opt = &_default_blksize;
+    }
 
     // decode the block request option
-    int size, offset, copy = 0;
-    if (opt->buf.len == 1) {
-        coap_opt_block2_t *blk = (coap_opt_block2_t*)(opt->buf.p);
-        size = 2 << (blk->szx + 3);
-        offset = size * blk->num;
-    }
-    else if (opt->buf.len == 2) {
-        coap_opt_block2_lng_t *blk = (coap_opt_block2_lng_t*)(opt->buf.p);
-        size = 2 << (blk->szx + 3);
-        uint16_t num = ((uint16_t)blk->num1) | (((uint16_t)blk->num2) << 4);
-        offset = size * num;
-    }
-    else if (opt->buf.len == 3) {
-        coap_opt_block3_lng_t *blk = (coap_opt_block3_lng_t*)(opt->buf.p);
-        size = 2 << (blk->szx + 3);
-        uint32_t num = ((uint32_t)blk->num1) | (((uint32_t)blk->num2) << 4) | (((uint32_t)blk->num3) << 12);
-        offset = size * num;
+    int size = 4096, offset = 0, copy = 0;
+    if (opt)
+    {
+        if (opt->buf.len == 1) {
+            coap_opt_block2_t *blk = (coap_opt_block2_t*)(opt->buf.p);
+            size = 2 << (blk->szx + 3);
+            offset = size * blk->num;
+        }
+        else if (opt->buf.len == 2) {
+            coap_opt_block2_lng_t *blk = (coap_opt_block2_lng_t*)(opt->buf.p);
+            size = 2 << (blk->szx + 3);
+            uint16_t num = ((uint16_t)blk->num1) | (((uint16_t)blk->num2) << 4);
+            offset = size * num;
+        }
+        else if (opt->buf.len == 3) {
+            coap_opt_block3_lng_t *blk = (coap_opt_block3_lng_t*)(opt->buf.p);
+            size = 2 << (blk->szx + 3);
+            uint32_t num = ((uint32_t)blk->num1) | (((uint32_t)blk->num2) << 4) | (((uint32_t)blk->num3) << 12);
+            offset = size * num;
+        }
     }
 
     uint8_t buffer[size];
@@ -585,19 +602,29 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
 
     coap_make_response(scratch, outpkt, buffer, spc_left >= 0 ? size - spc_left : size, inpkt, COAP_RSPCODE_CONTENT, COAP_CONTENTTYPE_APPLICATION_LINKFORMAT, COAP_TYPE_ACK);
 
-    if (opt->buf.len == 1) {
-        coap_opt_block2_t *blk = (coap_opt_block2_t*)(opt->buf.p);
-        blk->more = (spc_left <= 0);
-        coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_t));
-    }
-    else if (opt->buf.len == 2) {
-        coap_opt_block2_lng_t *blk = (coap_opt_block2_lng_t*)(opt->buf.p);
-        blk->more = (spc_left <= 0);
-        coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_lng_t));
+    if (opt)
+    {
+        if (opt->buf.len == 1) {
+            coap_opt_block2_t *blk = (coap_opt_block2_t*)(opt->buf.p);
+            blk->more = (spc_left <= 0);
+            coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_t));
+        }
+        else if (opt->buf.len == 2) {
+            coap_opt_block2_lng_t *blk = (coap_opt_block2_lng_t*)(opt->buf.p);
+            blk->more = (spc_left <= 0);
+            coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block2_lng_t));
+        }
+        else if (opt->buf.len == 3) {
+            coap_opt_block3_lng_t *blk = (coap_opt_block3_lng_t*)(opt->buf.p);
+            blk->more = (spc_left <= 0);
+            coap_add_option(outpkt, COAP_OPTION_BLOCK2, blk, sizeof(coap_opt_block3_lng_t));
+        }
     }
 
     return 0;
 }
+
+#define _COAP_HEADER_TO_METHOD(x)               (1 << (x - 1))
 
 // FIXME, if this looked in the table at the path before the method then
 // it could more easily return 405 errors
@@ -614,28 +641,19 @@ int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_
         return 0;
     }
 
+    // get the URI-Path
+    opt = coap_findOptions(inpkt, COAP_OPTION_URI_PATH, &count);
+
     // special case, if this is a get of .well-known.core
-    if (inpkt->hdr.code == COAP_METHOD_GET) {
-        opt = coap_findOptions(inpkt, COAP_OPTION_URI_PATH, &count);
-        if (opt && count == 2) {
-            if (!strncmp((char*)opt[0].buf.p, STAT_STR(.well-known))
-                    && !strncmp((char*)opt[1].buf.p, STAT_STR(core)))
-                return coap_send_endpoint_list(scratch, inpkt, outpkt);
-        }
+    if (opt && count == 2 && inpkt->hdr.code == COAP_METHOD_GET) {
+        if (!strncmp((char*)opt[0].buf.p, STAT_STR(.well-known))
+                && !strncmp((char*)opt[1].buf.p, STAT_STR(core)))
+            return coap_send_endpoint_list(scratch, inpkt, outpkt);
     }
 
     // search trough all the handles to find a response
     for (ep = endpoints; ep->handler; ++ep)
     {
-        // check if the endpoint handles the request code
-        if (!(ep->method & (1 << (inpkt->hdr.code - 1))))
-            continue;
-
-        // get the URI path options
-        opt = coap_findOptions(inpkt, COAP_OPTION_URI_PATH, &count);
-        if (!opt)
-            continue;
-
         // validate the path length
         if (count != ep->path->count)
             continue;
@@ -646,12 +664,19 @@ int coap_handle_req(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_
             match = (strncmp(ep->path->elems[i].str, (char*)opt[i].buf.p, opt[i].buf.len) == 0);
 
         // if we have our endpoint handle it
-        if (match)
-            return ep->handler(scratch, inpkt, outpkt);
+        if (!match)
+            continue;
+
+        // check if the endpoint handles the request code
+        if (ep->method & _COAP_HEADER_TO_METHOD(inpkt->hdr.code))
+            return ep->handler(scratch, inpkt, outpkt, _COAP_HEADER_TO_METHOD(inpkt->hdr.code), ep);
+
+        // method not supported
+        coap_make_response(scratch, outpkt, NULL, 0, inpkt, COAP_RSPCODE_METHOD_NOT_ALLOWED, COAP_CONTENTTYPE_NONE, COAP_TYPE_ACK);
+        return 0;
     }
 
-    // couldn't find the response0
+    // couldn't find the response
     coap_make_response(scratch, outpkt, NULL, 0, inpkt, COAP_RSPCODE_NOT_FOUND, COAP_CONTENTTYPE_NONE, COAP_TYPE_ACK);
-
     return 0;
 }

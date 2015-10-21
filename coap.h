@@ -101,17 +101,41 @@ typedef enum
 typedef enum
 {
     COAP_RSPCODE_EMPTY = MAKE_RSPCODE(0, 0),
+
+    // Success
+    COAP_RSPCODE_CREATED = MAKE_RSPCODE(2, 1),
+    COAP_RSPCODE_DELETED = MAKE_RSPCODE(2, 2),
+    COAP_RSPCODE_VALID = MAKE_RSPCODE(2, 3),
+    COAP_RSPCODE_CHANGED = MAKE_RSPCODE(2, 4),
     COAP_RSPCODE_CONTENT = MAKE_RSPCODE(2, 5),
-    COAP_RSPCODE_NOT_FOUND = MAKE_RSPCODE(4, 4),
+
+    // Client Errors
     COAP_RSPCODE_BAD_REQUEST = MAKE_RSPCODE(4, 0),
-    COAP_RSPCODE_CHANGED = MAKE_RSPCODE(2, 4)
+    COAP_RSPCODE_UNAUTHORIZED = MAKE_RSPCODE(4, 1),
+    COAP_RSPCODE_BAD_OPTION = MAKE_RSPCODE(4, 2),
+    COAP_RSPCODE_FORBIDDEN = MAKE_RSPCODE(4, 3),
+    COAP_RSPCODE_NOT_FOUND = MAKE_RSPCODE(4, 4),
+    COAP_RSPCODE_METHOD_NOT_ALLOWED = MAKE_RSPCODE(4, 5),
+    COAP_RSPCODE_NOT_ACCEPTABLE = MAKE_RSPCODE(4, 6),
+    COAP_RSPCODE_PRECONDITION_FAILED = MAKE_RSPCODE(4, 12),
+    COAP_RSPCODE_REQUEST_ENTITY_TO_LARGE = MAKE_RSPCODE(4, 13),
+    COAP_RSPCODE_UNSUPPORTED_CONTENT_FMT = MAKE_RSPCODE(4, 15),
+
+    // Server Errors
+    COAP_RSPCODE_INTERNAL_SERVER_ERROR = MAKE_RSPCODE(5, 0),
+    COAP_RSPCODE_NOT_IMPLEMENTED = MAKE_RSPCODE(5, 1),
+    COAP_RSPCODE_BAD_GATEWAY = MAKE_RSPCODE(5, 2),
+    COAP_RSPCODE_SERVICE_UNAVAILABLE = MAKE_RSPCODE(5, 3),
+    COAP_RSPCODE_GATEWAY_TIMEOUT = MAKE_RSPCODE(5, 4),
+    COAP_RSPCODE_NO_PROXY_SUPPORT = MAKE_RSPCODE(5, 5),
+
 } coap_responsecode_t;
 
 //http://tools.ietf.org/html/rfc7252#section-12.3
 typedef enum
 {
     COAP_CONTENTTYPE_NONE                       = -1, // bogus to allow us not to send option block
-    COAP_CONTENTTYPE_TEXT_PLAIN                 = 0,
+    COAP_CONTENTTYPE_TEXT_PLAIN                 =  0,
     COAP_CONTENTTYPE_APPLICATION_LINKFORMAT     = 40,
     COAP_CONTENTTYPE_APPLICATION_XML            = 41,
     COAP_CONTENTTYPE_APPLICATION_OCT_STREAM     = 42,
@@ -139,7 +163,6 @@ typedef enum
 
 ///////////////////////
 
-typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt);
 /* To increase COAP_MAX_SEGMENTS, set CFLAGS to -DCOAP_MAX_SEGMENTS=<your value>. */
 #ifndef COAP_MAX_SEGMENTS
 #define MAX_SEGMENTS 2  // 2 = /foo/bar, 3 = /foo/bar/baz
@@ -154,6 +177,10 @@ typedef struct
     const char *str;
     uint8_t len;
 } coap_str_element_t;
+
+struct coap_endpoint;
+
+typedef int (*coap_endpoint_func)(coap_rw_buffer_t *scratch, const coap_packet_t *inpkt, coap_packet_t *outpkt, coap_method_t method, const struct coap_endpoint *endpoint);
 
 #define STAT_STR(str)                       #str, sizeof(#str) - 1
 #define STAT_STR_EL(str)                    { STAT_STR(str) }
@@ -177,7 +204,7 @@ typedef struct
     coap_str_element_t elems[MAX_SEGMENTS];
 } coap_endpoint_path_t;
 
-typedef struct
+typedef struct coap_endpoint
 {
     coap_method_t method;               /* (i.e. POST, PUT or GET) */
     coap_endpoint_func handler;         /* callback function which handles this 

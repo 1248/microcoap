@@ -491,9 +491,9 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
                             spc_left -= (x);                            \
                             copy = spc_left >= 0 ? (x) : (x) + spc_left
 
-#define OFF_TAKE(x)         (offset <= 0                \
-                            || ((offset -= (x)) < 0     \
-                            && (offset = (x) + offset) >= 0))
+#define OFF_TAKE(x)         (offset == 0                \
+                            || ((offset -= (x)) < 0    \
+                            && (offset = ((x) + offset)) > 0))
 
 #define CLR_OFFSET()        offset -= offset
 
@@ -544,7 +544,7 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
         }
 
         if (OFF_TAKE(6)) {
-            BUF_TAKE(6);
+            BUF_TAKE(6 - offset);
             memcpy(buf, "title=" + offset, copy);
             buf += copy;
             CLR_OFFSET();
@@ -574,7 +574,7 @@ int coap_send_endpoint_list(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
         }
 
         if (OFF_TAKE(3)) {
-            BUF_TAKE(3);
+            BUF_TAKE(3 - offset);
             memcpy(buf, "ct=" + offset, copy);
             buf += copy;
             CLR_OFFSET();

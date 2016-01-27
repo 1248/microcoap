@@ -1,0 +1,20 @@
+{
+  "name": "microcoap",
+  "keywords": "coap, web",
+  "description": "A small CoAP implementation for microcontrollers",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1248/microcoap.git"
+  },
+  "authors": {
+    "name": "Toby Jaffey",
+    "url": "http://twitter.com/tobyjaffey"
+  },  
+  "exclude": [
+    "main-posix.c",
+    "microcoap.ino"
+  ],
+  "examples": "microcoap.ino",
+  "frameworks": "arduino",
+  "platforms": "*"
+}

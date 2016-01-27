@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stddef.h>
-#include "coap.h"
+#include "microcoap.h"
 
 extern void endpoint_setup(void);
 extern const coap_endpoint_t endpoints[];

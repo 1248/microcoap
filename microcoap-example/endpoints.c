@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <string.h>
-#include "coap.h"
+#include "microcoap.h"
+#include "connections.h"
 
 static char light = '0';
 
@@ -10,10 +11,9 @@ void build_rsp(void);
 
 #ifdef ARDUINO
 #include "Arduino.h"
-static int led = 6;
 void endpoint_setup(void)
 {                
-    pinMode(led, OUTPUT);     
+    pinMode(LED, OUTPUT);     
     build_rsp();
 }
 #else
@@ -44,7 +44,7 @@ static int handle_put_light(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
     {
         light = '1';
 #ifdef ARDUINO
-        digitalWrite(led, HIGH);
+        digitalWrite(LED, HIGH);
 #else
         printf("ON\n");
 #endif
@@ -54,7 +54,7 @@ static int handle_put_light(coap_rw_buffer_t *scratch, const coap_packet_t *inpk
     {
         light = '0';
 #ifdef ARDUINO
-        digitalWrite(led, LOW);
+        digitalWrite(LED, LOW);
 #else
         printf("OFF\n");
 #endif

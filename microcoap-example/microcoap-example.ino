@@ -7,7 +7,8 @@
 #include <Ethernet.h>
 #include <stdint.h>
 #include <EthernetUdp.h>
-#include "coap.h"
+#include "endpoints.h"
+#include "microcoap.h"
 
 #define PORT 5683
 static uint8_t mac[] = {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02};

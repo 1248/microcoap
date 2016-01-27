@@ -1,8 +1,8 @@
-#ifndef COAP_H
-#define COAP_H 1
+#ifndef MICROCOAP_H
+#define MICROCOAP_H 1
 
 #ifdef __cplusplus
-extern "C" {
+extern "C" {    
 #endif
 
 #include <stdint.h>

@@ -7,6 +7,7 @@
 #include "microcoap.h"
 
 extern void endpoint_setup(void);
+extern void increment_tick(void);
 extern const coap_endpoint_t endpoints[];
 
 #ifdef DEBUG

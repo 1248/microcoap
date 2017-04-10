@@ -369,7 +369,7 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
     pkt->hdr.code = rspcode;
     pkt->hdr.id[0] = msgid_hi;
     pkt->hdr.id[1] = msgid_lo;
-    pkt->numopts = 1;
+    pkt->numopts = 0;
 
     // need token in response
     if (tok) {
@@ -377,14 +377,17 @@ int coap_make_response(coap_rw_buffer_t *scratch, coap_packet_t *pkt, const uint
         pkt->tok = *tok;
     }
 
-    // safe because 1 < MAXOPT
-    pkt->opts[0].num = COAP_OPTION_CONTENT_FORMAT;
-    pkt->opts[0].buf.p = scratch->p;
-    if (scratch->len < 2)
-        return COAP_ERR_BUFFER_TOO_SMALL;
-    scratch->p[0] = ((uint16_t)content_type & 0xFF00) >> 8;
-    scratch->p[1] = ((uint16_t)content_type & 0x00FF);
-    pkt->opts[0].buf.len = 2;
+    if (content_type != COAP_CONTENTTYPE_NONE) {
+        pkt->numopts = 1;
+        // safe because 1 < MAXOPT
+        pkt->opts[0].num = COAP_OPTION_CONTENT_FORMAT;
+        pkt->opts[0].buf.p = scratch->p;
+        if (scratch->len < 2)
+            return COAP_ERR_BUFFER_TOO_SMALL;
+        scratch->p[0] = ((uint16_t)content_type & 0xFF00) >> 8;
+        scratch->p[1] = ((uint16_t)content_type & 0x00FF);
+        pkt->opts[0].buf.len = 2;
+    }
     pkt->payload.p = content;
     pkt->payload.len = content_len;
     return 0;

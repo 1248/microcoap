@@ -232,25 +232,41 @@ int coap_parse(coap_packet_t *pkt, const uint8_t *buf, size_t buflen)
 // options are always stored consecutively, so can return a block with same option num
 const coap_option_t *coap_findOptions(const coap_packet_t *pkt, uint8_t num, uint8_t *count)
 {
-    // FIXME, options is always sorted, can find faster than this
-    size_t i;
-    const coap_option_t *first = NULL;
+    size_t l, r, m;
+    uint8_t x;
+    size_t lower_bound = 0, upper_bound = 0;
     *count = 0;
-    for (i=0;i<pkt->numopts;i++)
+
+    // lower bound
+    l = 0; r = pkt->numopts;
+    while (l < r)
     {
-        if (pkt->opts[i].num == num)
-        {
-            if (NULL == first)
-                first = &pkt->opts[i];
-            (*count)++;
-        }
+        m = l + ((r - l) >> 1);
+        x = pkt->opts[m].num;
+        if (x < num)
+            l = m + 1;
         else
-        {
-            if (NULL != first)
-                break;
-        }
+            r = m;
     }
-    return first;
+    if (r >= pkt->numopts || pkt->opts[r].num != num)
+        return NULL;
+    lower_bound = r;
+
+    // upper bound
+    l = 0; r = pkt->numopts;
+    while (l < r)
+    {
+        m = l + ((r - l) >> 1);
+        x = pkt->opts[m].num;
+        if (x <= num)
+            l = m + 1;
+        else
+            r = m;
+    }
+    upper_bound = l;
+
+    *count = upper_bound - lower_bound;
+    return &pkt->opts[lower_bound];
 }
 
 int coap_buffer_to_string(char *strbuf, size_t strbuflen, const coap_buffer_t *buf)
@@ -284,7 +300,7 @@ int coap_build(uint8_t *buf, size_t *buflen, const coap_packet_t *pkt)
     p = buf + 4;
     if ((pkt->hdr.tkl > 0) && (pkt->hdr.tkl != pkt->tok.len))
         return COAP_ERR_UNSUPPORTED;
-    
+
     if (pkt->hdr.tkl > 0)
         memcpy(p, pkt->tok.p, pkt->hdr.tkl);
 
